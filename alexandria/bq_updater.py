@@ -10,20 +10,29 @@ class BigQuerySchemasUpdater():
         tables = client.list_tables(dataset_id)
         return set([table.table_id for table in tables])
 
-    def get_bq_table_schema(project, dataset, table_name):
+    def get_bq_table_metadata(project, dataset, table_name):
         # returns list of bq SchemaField objects
         table_id = '{0}.{1}.{2}'.format(project, dataset, table_name)
-        table = self.get_bq_table(table_id)
-        return table.schema
+        table = client.get_table(table_id)
+        return table.schema, table.num_rows
 
-    def get_bq_table(table_id):
-        # returns bq table object for given table_id
-        # the table_id format is 'project.dataset.table'
-        return client.get_table(table_id)
 
-    def get_local_table_schema(local_path, table_name):
+    def create_schema_object_from_json(schema_struct):
+        # returns a valid bigquery schema from locally storeed json representation
+        schema = []
+        for i in schema_struct:
+            schema.append(bigquery.schema.SchemaField.from_api_repr(i))
+        return schema
 
-        pass
+    def update_table_schema(full_table_location, table_description, schema_struct, table_name):
+        # full_table_location: str, project.dataset.table
+        # table_description: str, table description to add
+        # schema_struct: list of dicts, representing a valid schema that matches the
+        # schema of full_table_location with descriptions to add to each column
+        client = bigquery.Client()
+        table = client.get_table(full_table_location)
+        table.description = table_description
 
-    def update_table_schema(schema, table_name):
-        pass
+        schema = create_schema_object_from_json(schema_struct)
+        table.schema = schema
+        client.update_table(table, ['description', 'schema'])
