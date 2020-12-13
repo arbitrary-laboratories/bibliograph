@@ -19,5 +19,12 @@ def get_metadata():
     schema, num_rows = gateway.get_bq_table_metadata(project, dataset, table_name)
     return jsonify([gateway.serialize_schema(schema), num_rows])
 
+@app.route('/query_history', methods=['GET'])
+def get_qh():
+    gateway = BigQueryGateway()
+    return jsonify(gateway.get_query_history())
+
+
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
