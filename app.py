@@ -10,5 +10,14 @@ def get_project_tables():
     tables = gateway.get_tables(project, dataset)
     return jsonify(tables)
 
+@app.route('/table_metadata', methods=['GET'])
+def get_metadata():
+    project = request.args.get('project')
+    dataset = request.args.get('dataset')
+    table_name = request.args.get('tablename')
+    gateway = BigQueryGateway()
+    schema, num_rows = gateway.get_bq_table_metadata(project, dataset, table_name)
+    return jsonify([gateway.serialize_schema(schema), num_rows])
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

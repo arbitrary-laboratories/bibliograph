@@ -38,3 +38,17 @@ class BigQueryGateway():
     def get_query_history(self):
         jobs = self.client.list_jobs(all_users=True)
         return [job.query for job in jobs]
+
+    def serialize_schema(self, schema_obj):
+        ret_list = []
+        for val in schema_obj:
+            ret_list.append({
+                'name': val.name,
+                'description': val.description,
+                'field_type': val.field_type,
+                'fields': val.fields,
+                'is_nullable': val.is_nullable,
+                'mode': val.mode,
+                'policy_tags': val.policy_tags,
+            })
+        return ret_list
