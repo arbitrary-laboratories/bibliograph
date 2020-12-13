@@ -1,7 +1,6 @@
 from google.cloud import bigquery
 
-class BigQuerySchemasUpdater():
-    self.scope = "all"
+class BigQueryGateway():
     client = bigquery.Client()
 
     def get_tables(project, dataset):
