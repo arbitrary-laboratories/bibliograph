@@ -16,7 +16,6 @@ class BigQuerySchemasUpdater():
         table = client.get_table(table_id)
         return table.schema, table.num_rows
 
-
     def create_schema_object_from_json(schema_struct):
         # returns a valid bigquery schema from locally storeed json representation
         schema = []
@@ -36,3 +35,8 @@ class BigQuerySchemasUpdater():
         schema = create_schema_object_from_json(schema_struct)
         table.schema = schema
         client.update_table(table, ['description', 'schema'])
+
+    def get_query_history():
+        client = bigquery.Client()
+        jobs = client.list_jobs(all_users=True)
+        return [job.query for job in jobs]
