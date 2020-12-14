@@ -44,10 +44,11 @@ def update_warehouse_schema():
     table_name = request.args.get('tablename')
     data = request.get_json()
     gateway =  BigQueryGateway()
-    gateway.update_warehouse_schema(dataset,
-                                    table_name,
-                                    data['description'],
-                                    data['schema_struct'])
+    gateway.update_warehouse_table_schema(project,
+                                          dataset,
+                                          table_name,
+                                          data['description'],
+                                          data['schema_struct'])
 
 @app.route('/query_history', methods=['GET'])
 def get_qh():

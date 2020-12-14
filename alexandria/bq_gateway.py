@@ -2,6 +2,7 @@ from google.cloud import bigquery
 from alexandria.schema_obj import SchemaObject
 import os
 import pickle as pkl
+import json
 
 class BigQueryGateway(object):
     def __init__(self):
@@ -26,13 +27,6 @@ class BigQueryGateway(object):
             schema.append(bigquery.schema.SchemaField.from_api_repr(i))
         return schema
 
-    def create_json_from_schema_object(self, schema_obj):
-        # returns valid locally stored json representation from a bigquery schema
-        schema = []
-        for i in schema_obj:
-            schema.append(bigquery.schema.SchemaField.to_api_repr(i))
-        return schema
-
     def update_warehouse_table_schema(self,
                                       project,
                                       dataset,
@@ -48,7 +42,7 @@ class BigQueryGateway(object):
         table = self.client.get_table(full_table_location)
         table.description = table_description
 
-        schema = create_schema_object_from_json(schema_struct)
+        schema = self.create_schema_object_from_json(schema_struct)
         table.schema = schema
         self.client.update_table(table, ['description', 'schema'])
 
@@ -68,7 +62,8 @@ class BigQueryGateway(object):
                                                      dataset,
                                                      table_name)
         save_schema = SchemaObject(table_description,
-                                   create_json_from_schema_object(schema_struct))
+                                   json.loads(schema_struct))
+                                   # self.create_json_from_schema_object(schema_struct))
         with open(save_path, 'wb') as f:
             pkl.dump(save_schema, f)
 
