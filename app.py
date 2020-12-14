@@ -19,12 +19,40 @@ def get_metadata():
     schema, num_rows = gateway.get_bq_table_metadata(project, dataset, table_name)
     return jsonify([gateway.serialize_schema(schema), num_rows])
 
+
+@app.route('/update_local_schema', methods=['POST'])
+def update_local_schema():
+    # update the local file that contains the table metadata
+    project = request.args.get('project')
+    dataset = request.args.get('dataset')
+    table_name = request.args.get('tablename')
+    data = request.get_json()
+    gateway = BigQueryGateway()
+    # TODO: Where to store these schema representations?
+    gateway.update_local_table_schema('',
+                                      project,
+                                      dataset,
+                                      table_name,
+                                      data['description'],
+                                      data['schema_struct'])
+
+@app.route('/update_wh_from_local', methods=['POST'])
+def update_warehouse_schema():
+    # TODO: Where to store these schema representations?
+    project = request.args.get('project')
+    dataset = request.args.get('dataset')
+    table_name = request.args.get('tablename')
+    data = request.get_json()
+    gateway =  BigQueryGateway()
+    gateway.update_warehouse_schema(dataset,
+                                    table_name,
+                                    data['description'],
+                                    data['schema_struct'])
+
 @app.route('/query_history', methods=['GET'])
 def get_qh():
     gateway = BigQueryGateway()
     return jsonify(gateway.get_query_history())
-
-
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
