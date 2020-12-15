@@ -63,7 +63,6 @@ class BigQueryGateway(object):
                                                      table_name)
         save_schema = SchemaObject(table_description,
                                    json.loads(schema_struct))
-                                   # self.create_json_from_schema_object(schema_struct))
         with open(save_path, 'wb') as f:
             pkl.dump(save_schema, f)
 

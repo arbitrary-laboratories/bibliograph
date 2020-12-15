@@ -19,7 +19,6 @@ def get_metadata():
     schema, num_rows = gateway.get_bq_table_metadata(project, dataset, table_name)
     return jsonify([gateway.serialize_schema(schema), num_rows])
 
-
 @app.route('/update_local_schema', methods=['POST'])
 def update_local_schema():
     # update the local file that contains the table metadata
