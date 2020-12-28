@@ -1,24 +1,23 @@
-from sqlalchemy import Column, DateTime, Integer, String
+from sqlalchemy import Column, DateTime, Integer, String, Boolean
 from sqlalchemy.ext.declarative import declarative_base
-from uuid import uuid4
 
 Base = declarative_base()
 
 class Organization(Base):
-    org_id = Column(UUID(as_uuid=True),
-                    primary_key=True,
-                    default=uuid4,
-                    )
+    __tablename__ = "organizations"
+
+    org_id = Column(String,
+                    primary_key= True,
+                   )
     name = Column(String)
 
 class Table(Base):
-    table_id = Column(UUID(as_uuid=True),
+    __tablename__ = "tables"
+
+    table_id = Column(String,
                       primary_key=True,
-                      default=uuid4,
                       )
-    org_id = Column(UUID(as_uuid=True),
-                    default=uuid4,
-                    )
+    org_id = Column(String)
     name = Column(String)
     description = Column(String)
     annotation = Column(String)
@@ -28,17 +27,14 @@ class Table(Base):
     is_latest = Column(Boolean)
 
 class Column(Base):
-    column_id = Column(UUID(as_uuid=True),
+    __tablename__ = "columns"
+    
+    column_id = Column(String,
                        primary_key=True,
-                       default=uuid4,
                        )
-    table_id = Column(UUID(as_uuid=True),
-                      default=uuid4,
-                      )
+    table_id = Column(String)
 
-    org_id = Column(UUID(as_uuid=True),
-                    default=uuid4,
-                    )
+    org_id = Column(String)
     data_type = Column(String)
     name = Column(String)
     description = Column(String)
