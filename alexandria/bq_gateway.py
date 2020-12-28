@@ -8,6 +8,13 @@ class BigQueryGateway(object):
     def __init__(self):
         self.client = bigquery.Client()
 
+    def get_projects(self):
+        # returns list of projects associated with the service account scope
+        return [project.friendly_name for project in self.client.list_projects()]
+
+    def get_datasets(self, project):
+        return [dataset.dataset_id for dataset in self.client.list_datasets(project)]
+
     def get_tables(self, project, dataset):
         # returns set of tables in the project and dataset
         dataset_id = '{0}.{1}'.format(project, dataset)
