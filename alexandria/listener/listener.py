@@ -49,8 +49,40 @@ class ListenerService(object):
         return metadata_model
 
     def compare_metadata(self, dw_metadata, db_metadata):
-        if dw_metadata == db_metadata:
+        modified_ids = set()
+        table_changes = {'add':[], 'remove':[], 'modify':[]}
+        db_tables_all = set([json.dumps(table) for table in db_metadata])
+        dw_tables_all = set([json.dumps(table) for table in dw_metadata])
+
+        #scenario where there are no changes to enforce
+        if db_tables_all == dw_tables_all:
             return None
+
+        # scenario where an entirely new table has been added to the dw
+        db_tables = set([table['full_id'] for table in db_metadata])
+        dw_tables = set([table['full_id'] for table in dw_metadata])
+        added = dw_tables - db_tables
+        added_to_add = [json.loads(table) for table in dw_tables_all if json.loads(table)['full_id'] in added]
+        table_changes['add'].append(added_to_add)
+        modified_ids.update([item['full_id'] for item in added_to_add])
+
+        #scenario where a table was deleted in the dw
+        removed = db_tables - dw_tables
+        removed_to_remove = [json.loads(table) for table in db_tables_all if json.loads(table)['full_id'] in removed]
+        table_changes['remove'].append(removed_to_remove)
+        modified_ids.update([item['full_id'] for item in removed_to_remove])
+
+        #scenario where a table has been edited in the dw
+        for dw_table in dw_tables_all:
+            dw_table = json.loads(dw_table)
+            dw_table_id = dw_table['full_id']
+            comp_db_table = next((json.loads(item) for item in db_tables_all if json.loads(item)['full_id'] == dw_table_id), False)
+            if dw_table != comp_db_table:
+                if dw_table_id not in modified_ids:
+                    table_changes['modify'].append(dw_table)
+
+        return table_changes
+
 
     def enforce_changes():
         continue
