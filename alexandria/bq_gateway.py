@@ -74,7 +74,7 @@ class BigQueryGateway(object):
             pkl.dump(save_schema, f)
 
     def get_query_history(self):
-        jobs = self.client.list_jobs(all_users=True)
+        jobs = self.client.list_jobs(all_users=True, max_results=10)
         return [job.query for job in jobs]
 
     def serialize_schema(self, schema_obj):
@@ -84,9 +84,5 @@ class BigQueryGateway(object):
                 'name': val.name,
                 'description': val.description,
                 'field_type': val.field_type,
-                'fields': val.fields,
-                'is_nullable': val.is_nullable,
-                'mode': val.mode,
-                'policy_tags': val.policy_tags,
             })
         return ret_list
