@@ -25,7 +25,7 @@ class BigQueryGateway(object):
         # returns list of bq SchemaField objects
         table_id = '{0}.{1}.{2}'.format(project, dataset, table_name)
         table = self.client.get_table(table_id)
-        return table.schema, table.num_rows, table.full_table_id
+        return table.description, table.schema, table.num_rows, table.full_table_id
 
     def create_schema_object_from_json(self, schema_struct):
         # returns a valid bigquery schema from locally stored json representation
