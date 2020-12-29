@@ -22,13 +22,14 @@ class Table(Base):
     description = Column(String)
     annotation = Column(String)
     warehouse = Column(String)
+    warehouse_full_table_id = Column(String) #unique identifier
     changed_time = Column(DateTime)
     version = Column(Integer)
     is_latest = Column(Boolean)
 
 class Column(Base):
     __tablename__ = "columns"
-    
+
     column_id = Column(String,
                        primary_key=True,
                        )

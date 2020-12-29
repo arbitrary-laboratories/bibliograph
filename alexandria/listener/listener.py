@@ -5,16 +5,17 @@ datawarehouse_map = {
                     }
 
 class ListenerService(object):
-    def __init__(warehouse_type):
+    def __init__(warehouse_type, db_path):
         self.refresh = 5 # compare once every 5 minutes
         self.db_path = None
         self.gateway = datawarehouse_map[warehouse_type]()
+        self.engine = create_engine('sqlite://{path}/exabyte.db'.format(db_path), echo=True)
 
-    def pull_metadata_from_ebdb(org_id):
+    def pull_metadata_from_ebdb(self, org_id):
         metadata_model = []
-        conn = engine.connect()
+        conn = self.engine.connect()
         query_table = meta.tables['tables']
-        query = select([query_table]).where(query_table.c.org_id == '549fc93b-3c16-48fc-b37d-dee697623bd0')
+        query = select([query_table]).where(query_table.c.org_id == org_id)
         tables = conn.execute(query)
         for table_obj in tables:
             query_table = meta.tables['columns']
@@ -22,25 +23,30 @@ class ListenerService(object):
             columns = conn.execute(query)
             cs = []
             for col_obj in columns:
-                c = {'name': col_obj['name'], 'description':col_obj['description'], 'field_type':col_obj['data_type']}
+                c = {'name': col_obj['name'],
+                     'description': col_obj['description'],
+                     'field_type': col_obj['data_type']}
                 cs.append(c)
             t = {'name': table_obj['name'], "schema": cs}
             metadata_model.append(t)
         conn.close()
         return metadata_model
 
-    def pull_metadata_from_dw(org_id):
+    def pull_metadata_from_dw(self, org_id):
         metadata_model = []
-        for project in projects:
-            for dataset in g.get_datasets(project):
-                for table in g.get_tables(project, dataset):
-                    schema, num_rows = g.get_bq_table_metadata(project, dataset, table)
-                    serialized_schema = g.serialize_schema(schema)
-                    metadata_model.append({"name": table, "schema": serialized_schema})
+        for project in self.gateway.get_projects():
+            for dataset in self.gateway.get_datasets(project):
+                for table in self.gateway.get_tables(project, dataset):
+                    schema, num_rows, full_id  = self.gateway.get_bq_table_metadata(project, dataset, table)
+                    serialized_schema = self.gateway.serialize_schema(schema)
+                    metadata_model.append({"name": table,
+                                           "full_id": full_id,
+                                           "schema": serialized_schema})
         return metadata_model
 
-    def compare_metadata(dw_metadata, db_metadata):
-        continue
+    def compare_metadata(self, dw_metadata, db_metadata):
+        if dw_metadata == db_metadata:
+            return None
 
     def enforce_changes():
         continue
