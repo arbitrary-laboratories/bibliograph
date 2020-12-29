@@ -89,19 +89,20 @@ class ListenerService(object):
 
     def enforce_changes(self, change_log):
         for table in change_log['add']:
-            add_to_ebdb(table)
+            add_to_ebdb(table, org_id)
         for table in change_log['remove']:
-            remove_from_ebdb(table)
+            remove_from_ebdb(table, org_id)
         for table in change_log['modify']:
             modify_ebdb(table)
 
-    def add_to_ebdb(table):
+    def add_to_ebdb(add_table, org_id):
         # add columns to the columns table
-        table = meta.tables['columns']
+        conn = engine.connect()
+        cols_table = meta.tables['columns']
         add_table_id = str(uuid4())
-        for column in table['schema']:
+        for column in add_table['schema']:
             add_column_id = str(uuid4())
-            col_ins = table.insert().values(
+            col_ins = cols_table.insert().values(
                           column_id = add_column_id,
                           table_id = add_table_id,
                           org_id = org_id,
@@ -114,11 +115,10 @@ class ListenerService(object):
                           version = 0,
                           is_latest = True,
                       )
-            conn = engine.connect()
             conn.execute(col_ins)
         #add to the tables table
-        table = meta.tables['tables']
-        table_ins = table.insert().values(
+        tables_table = meta.tables['tables']
+        table_ins = tables_table.insert().values(
                         table_id = add_table_id,
                         org_id = org_id,
                         name = add_table['name'],
@@ -132,10 +132,17 @@ class ListenerService(object):
                     )
         conn.execute(col_ins)
         conn.close()
-        continue
 
-    def remove_from_ebdb(table):
-        continue
+    def remove_from_ebdb(remove_table):
+        conn = engine.connect()
+        columns_table = meta.tables['columns']
+        for column in remove_table['schema']:
+            col_del = columns_table.delete().where(columns_table.c.warehouse_full_column_id == column['warehouse_full_column_id'])
+            conn.execute(col_del)
+        tables_table = meta.tables['tables']
+        table_del = tables_table.delete().where(tables_table.c.warehouse_full_table_id == remove_table['warehouse_full_table_id'])
+        conn.execute(table_del)
+        conn.close()
 
     def modify_ebdb(table):
         continue
