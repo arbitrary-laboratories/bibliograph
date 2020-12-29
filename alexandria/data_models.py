@@ -34,12 +34,12 @@ class Column(Base):
                        primary_key=True,
                        )
     table_id = Column(String)
-
     org_id = Column(String)
     data_type = Column(String)
     name = Column(String)
     description = Column(String)
     annotation = Column(String)
+    warehouse_full_column_id = Column(String)
     changed_time = Column(DateTime)
     version = Column(Integer)
     is_latest = Column(Boolean)

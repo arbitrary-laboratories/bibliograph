@@ -23,11 +23,15 @@ class ListenerService(object):
             columns = conn.execute(query)
             cs = []
             for col_obj in columns:
+                warehouse_column_id = '{0}.{1}'.format(table_obj['warehouse_full_table_id'], col_obj['name'])
                 c = {'name': col_obj['name'],
                      'description': col_obj['description'],
-                     'field_type': col_obj['data_type']}
+                     'field_type': col_obj['data_type'],
+                     'warehouse_full_column_id': warehouse_column_id}
                 cs.append(c)
-            t = {'name': table_obj['name'], "schema": cs}
+            t = {'name': table_obj['name'],
+                 'full_id': table_obj['warehouse_full_table_id'],
+                 'schema': cs}
             metadata_model.append(t)
         conn.close()
         return metadata_model
@@ -38,7 +42,7 @@ class ListenerService(object):
             for dataset in self.gateway.get_datasets(project):
                 for table in self.gateway.get_tables(project, dataset):
                     schema, num_rows, full_id  = self.gateway.get_bq_table_metadata(project, dataset, table)
-                    serialized_schema = self.gateway.serialize_schema(schema)
+                    serialized_schema = self.gateway.serialize_schema(schema, full_id)
                     metadata_model.append({"name": table,
                                            "full_id": full_id,
                                            "schema": serialized_schema})

@@ -77,12 +77,13 @@ class BigQueryGateway(object):
         jobs = self.client.list_jobs(all_users=True, max_results=10)
         return [job.query for job in jobs]
 
-    def serialize_schema(self, schema_obj):
+    def serialize_schema(self, schema_obj, full_table_id):
         ret_list = []
         for val in schema_obj:
             ret_list.append({
                 'name': val.name,
                 'description': val.description,
                 'field_type': val.field_type,
+                'warehouse_full_column_id': '{0}.{1}'.format(full_table_id, val.name),
             })
         return ret_list
