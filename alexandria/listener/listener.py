@@ -19,6 +19,7 @@ class ListenerService(object):
         self.gateway = datawarehouse_map[warehouse_type]()
         self.engine = create_engine('sqlite://{path}/exabyte.db'.format(db_path), echo=True)
         self.meta = MetaData(self.engine)
+        self.meta.reflect()
 
     def pull_metadata_from_ebdb(self, org_id):
         metadata_model = []
