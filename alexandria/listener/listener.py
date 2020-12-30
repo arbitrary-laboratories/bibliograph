@@ -18,12 +18,15 @@ class ListenerService(object):
         self.datawarehouse_type = 'bq'
         self.gateway = datawarehouse_map[warehouse_type]()
         self.engine = create_engine('sqlite://{path}/exabyte.db'.format(db_path), echo=True)
+        self.meta = MetaData(self.engine)
 
     def pull_metadata_from_ebdb(self, org_id):
         metadata_model = []
+        query_table = self.meta.tables['tables']
         query = select([query_table]).where(query_table.c.org_id == org_id)
         tables = self.execute_db_action('tables', query, is_select=True)
         for table_obj in tables:
+            query_table = self.meta.tables['columns']
             query = select([query_table]).where(query_table.c.table_id == table_obj['table_id'])
             columns = self.execute_db_action('columns', query, is_select=True)
             cs = []
@@ -104,6 +107,7 @@ class ListenerService(object):
         add_table_id = str(uuid4())
         for column in add_table['schema']:
             add_column_id = str(uuid4())
+            cols_table = self.meta.tables['columns']
             col_ins = cols_table.insert().values(
                           column_id = add_column_id,
                           table_id = add_table_id,
@@ -119,7 +123,7 @@ class ListenerService(object):
                       )
             self.execute_db_action('columns', col_ins, is_select=False)
         #add to the tables table
-        tables_table = meta.tables['tables']
+        tables_table = self.meta.tables['tables']
         table_ins = tables_table.insert().values(
                         table_id = add_table_id,
                         org_id = org_id,
@@ -136,18 +140,40 @@ class ListenerService(object):
 
     def remove_from_ebdb(remove_table):
         for column in remove_table['schema']:
+            columns_table = self.meta.tables['columns']
             col_del = columns_table.delete().where(columns_table.c.warehouse_full_column_id == column['warehouse_full_column_id'])
             self.execute_db_action('columns', col_del, is_select=False)
-        tables_table = meta.tables['tables']
+        tables_table = self.meta.tables['tables']
         table_del = tables_table.delete().where(tables_table.c.warehouse_full_table_id == remove_table['warehouse_full_table_id'])
         self.execute_db_action('tables', table_del, is_select=False)
 
-    def modify_ebdb(table):
-        continue
+    def modify_ebdb(self, modify_table):
+        tables_table = self.meta.tables['tables']
+        # modify the tables table
+        update_dict = {tables_table.c.name: modify_table['name'],
+                       tables_table.c.description: modify_table['description'],
+                       tables_table.c.changed_time: datetime.datetime.utcnow(),
+                       tables_table.c.version: (tables_table.c.version + 1),
+                       tables_table.c.is_latest: True,
+                      }
+        update_ts = tables_table.update().values(update_dict).where(tables_table.c.warehouse_full_table_id == modify_table['full_id'])
+        self.execute_db_action('tables', update_ts, is_select=False)
+        for column in modify_table['schema']:
+            columns_table = meta.tables['columns']
+            update_dict = {columns_table.c.name: column['name'],
+                           columns_table.c.description: column['description'],
+                           columns_table.c.data_type: column['field_type'],
+                           columns_table.c.changed_time: datetime.datetime.utcnow(),
+                           columns_table.c.version: (columns_table.c.version + 1),
+                           columns_table.c.is_latest: True,
+                          }
+            update_cols = columns_table.update().values(update_dict).where(columns_table.c.warehouse_full_column_id == column['warehouse_full_column_id'])
+            self.execute_db_action('columns', update_cols, is_select=False)
+
 
     def execute_db_action(self, target_table, query, is_select=False):
         conn = self.engine.connect()
-        table = meta.tables[target_table]
+        table = self.meta.tables[target_table]
         res = conn.execute(query)
         if is_select:
             return [i for i in res]
