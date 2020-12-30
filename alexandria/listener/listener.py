@@ -1,3 +1,10 @@
+from sqlalchemy import create_engine
+from sqlalchemy import insert, select, delete, inspect
+from sqlalchemy import Column, DateTime, Integer, String, Boolean
+from sqlalchemy import Metadata
+from sqlalchemy.ext.declarative import declarative_base
+from uuid import uuid4
+
 from alexandria.bq_gateway import BigQueryGateway
 
 datawarehouse_map = {
@@ -14,14 +21,11 @@ class ListenerService(object):
 
     def pull_metadata_from_ebdb(self, org_id):
         metadata_model = []
-        conn = self.engine.connect()
-        query_table = meta.tables['tables']
         query = select([query_table]).where(query_table.c.org_id == org_id)
-        tables = conn.execute(query)
+        tables = self.execute_db_action('tables', query, is_select=True)
         for table_obj in tables:
-            query_table = meta.tables['columns']
             query = select([query_table]).where(query_table.c.table_id == table_obj['table_id'])
-            columns = conn.execute(query)
+            columns = self.execute_db_action('columns', query, is_select=True)
             cs = []
             for col_obj in columns:
                 warehouse_column_id = '{0}.{1}'.format(table_obj['warehouse_full_table_id'], col_obj['name'])
@@ -97,8 +101,6 @@ class ListenerService(object):
 
     def add_to_ebdb(add_table, org_id):
         # add columns to the columns table
-        conn = engine.connect()
-        cols_table = meta.tables['columns']
         add_table_id = str(uuid4())
         for column in add_table['schema']:
             add_column_id = str(uuid4())
@@ -115,7 +117,7 @@ class ListenerService(object):
                           version = 0,
                           is_latest = True,
                       )
-            conn.execute(col_ins)
+            self.execute_db_action('columns', col_ins, is_select=False)
         #add to the tables table
         tables_table = meta.tables['tables']
         table_ins = tables_table.insert().values(
@@ -130,22 +132,27 @@ class ListenerService(object):
                         version= 0,
                         is_latest= True,
                     )
-        conn.execute(col_ins)
-        conn.close()
+        self.execute_db_action('tables', table_ins, is_select=False)
 
     def remove_from_ebdb(remove_table):
-        conn = engine.connect()
-        columns_table = meta.tables['columns']
         for column in remove_table['schema']:
             col_del = columns_table.delete().where(columns_table.c.warehouse_full_column_id == column['warehouse_full_column_id'])
-            conn.execute(col_del)
+            self.execute_db_action('columns', col_del, is_select=False)
         tables_table = meta.tables['tables']
         table_del = tables_table.delete().where(tables_table.c.warehouse_full_table_id == remove_table['warehouse_full_table_id'])
-        conn.execute(table_del)
-        conn.close()
+        self.execute_db_action('tables', table_del, is_select=False)
 
     def modify_ebdb(table):
         continue
+
+    def execute_db_action(self, target_table, query, is_select=False):
+        conn = self.engine.connect()
+        table = meta.tables[target_table]
+        res = conn.execute(query)
+        if is_select:
+            return [i for i in res]
+            conn.close()
+        conn.close()
 
     def get_bq_gateway():
         return BigQueryGateway()
