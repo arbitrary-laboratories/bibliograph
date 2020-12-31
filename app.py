@@ -1,6 +1,11 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
+
 from alexandria.bq_gateway import BigQueryGateway
 app = Flask(__name__)
+
+# Temporary
+CORS(app)
 
 @app.route('/tables', methods=['GET'])
 def get_project_tables():
