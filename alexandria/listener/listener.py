@@ -17,7 +17,7 @@ class ListenerService(object):
         self.db_path = None
         self.datawarehouse_type = 'bq'
         self.gateway = datawarehouse_map[warehouse_type]()
-        self.engine = create_engine('sqlite://{path}/exabyte.db'.format(db_path), echo=True)
+        self.engine = create_engine('sqlite://{path}/exabyte.db'.format(self.db_path), echo=True)
         self.meta = MetaData(self.engine)
         self.meta.reflect()
 
