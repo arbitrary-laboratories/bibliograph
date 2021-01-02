@@ -1,3 +1,9 @@
+from sqlalchemy import create_engine
+from sqlalchemy import insert, select, delete, inspect
+from sqlalchemy import Column, DateTime, Integer, String, Boolean
+from sqlalchemy import Metadata
+from sqlalchemy.ext.declarative import declarative_base
+
 from alexandria.bq_gateway import BigQueryGateway
 
 datawarehouse_map = {
@@ -39,7 +45,8 @@ class InterfaceService(object):
         return results
 
     def edit_annotation(id, edit_target, changed_annotation):
-        # edit_target = {'columns', 'tables'}
+        # id is either column_id or table_id
+        # edit_target is either 'columns' or 'tables'
         table = self.meta.tables[edit_target]
         update_dict = {table.c.annotation: changed_annotation}
         if edit_target == 'columns':
@@ -48,8 +55,6 @@ class InterfaceService(object):
             update = table.update().values(update_dict).where(table.c.table_id == id)
         self.execute_db_action(edit_target, update, is_select=False)
 
-    def edit_description():
-        continue
 
     def execute_db_action(self, target_table, query, is_select=False):
         conn = self.engine.connect()
@@ -59,3 +64,6 @@ class InterfaceService(object):
             return [i for i in res]
             conn.close()
         conn.close()
+
+    def get_bq_gateway():
+        return BigQueryGateway()
