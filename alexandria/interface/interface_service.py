@@ -1,50 +1,49 @@
 from sqlalchemy import create_engine
 from sqlalchemy import insert, select, delete, inspect
 from sqlalchemy import Column, DateTime, Integer, String, Boolean
-from sqlalchemy import Metadata
+from sqlalchemy import MetaData
 from sqlalchemy.ext.declarative import declarative_base
 
-from alexandria.bq_gateway import BigQueryGateway
+from alexandria.utils import get_bq_gateway
 
-datawarehouse_map = {
-                     'bq': get_bq_gateway,
-                    }
+# datawarehouse_map = {
+#                      'bq': get_bq_gateway,
+#                     }
 
 class InterfaceService(object):
-    def __init__(warehouse_type, db_path):
-        self.db_path = None
-        self.datawarehouse_type = 'bq'
-        self.gateway = datawarehouse_map[warehouse_type]()
-        self.engine = create_engine('sqlite://{path}/exabyte.db'.format(self.db_path), echo=True)
+    def __init__(self, db_path):
+        self.db_path = db_path
+        self.gateway = get_bq_gateway() #datawarehouse_map[warehouse_type]()
+        self.engine = create_engine('sqlite:///{path}/exabyte.db'.format(path=self.db_path), echo=True)
         self.meta = MetaData(self.engine)
         self.meta.reflect()
 
-    def org_init(org_id, init=True):
+    def org_init(self, org_id, init=True):
         # sends all table for an organiztation
         tables_table = self.meta.tables['tables']
         tables_sel = select([tables_table]).where(tables_table.c.org_id == org_id)
-        results = execute_db_action('tables', tables_sel, is_select=True)
+        results = self.execute_db_action('tables', tables_sel, is_select=True)
         return [(i.table_id,
                  i.name,
                  i.description,
                  i.annotation,
                  i.warehouse_full_table_id) for i in results]
 
-    def table_load(table_id):
+    def table_load(self, table_id):
         # sends all column data for a given table
         tables_table = self.meta.tables['tables']
         tables_sel = select([tables_table]).where(tables_table.c.table_id == table_id)
-        results = execute_db_action('tables', tables_sel, is_select=True)
+        results = self.execute_db_action('tables', tables_sel, is_select=True)
         return results
 
-    def columns_load(table_id):
+    def columns_load(self, table_id):
         # sends all column data for a given table
         columns_table = self.meta.tables['columns']
         columns_sel = select([columns_table]).where(columns_table.c.table_id == table_id)
-        results = execute_db_action('columns', columns_sel, is_select=True)
+        results = self.execute_db_action('columns', columns_sel, is_select=True)
         return results
 
-    def edit_annotation(id, edit_target, changed_annotation):
+    def edit_annotation(self, id, edit_target, changed_annotation):
         # id is either column_id or table_id
         # edit_target is either 'columns' or 'tables'
         table = self.meta.tables[edit_target]
@@ -64,6 +63,3 @@ class InterfaceService(object):
             return [i for i in res]
             conn.close()
         conn.close()
-
-    def get_bq_gateway():
-        return BigQueryGateway()
