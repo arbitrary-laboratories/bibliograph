@@ -1,23 +1,22 @@
+import datetime
 from sqlalchemy import create_engine
 from sqlalchemy import insert, select, delete, inspect
 from sqlalchemy import Column, DateTime, Integer, String, Boolean
-from sqlalchemy import Metadata
+from sqlalchemy import MetaData
 from sqlalchemy.ext.declarative import declarative_base
 from uuid import uuid4
 
-from alexandria.bq_gateway import BigQueryGateway
+from alexandria.utils import get_bq_gateway
 
-datawarehouse_map = {
-                     'bq': get_bq_gateway,
-                    }
+# datawarehouse_map = {
+#                      'bq': get_bq_gateway,
+#                     }
 
 class ListenerService(object):
-    def __init__(warehouse_type, db_path):
-        self.refresh = 5 # compare once every 5 minutes
-        self.db_path = None
-        self.datawarehouse_type = 'bq'
-        self.gateway = datawarehouse_map[warehouse_type]()
-        self.engine = create_engine('sqlite://{path}/exabyte.db'.format(self.db_path), echo=True)
+    def __init__(self, db_path):
+        self.db_path = db_path
+        self.gateway = get_bq_gateway() #datawarehouse_map[warehouse_type]()
+        self.engine = create_engine('sqlite:///{path}/exabyte.db'.format(path=self.db_path), echo=True)
         self.meta = MetaData(self.engine)
         self.meta.reflect()
 
@@ -43,7 +42,6 @@ class ListenerService(object):
                  'full_id': table_obj['warehouse_full_table_id'],
                  'schema': cs}
             metadata_model.append(t)
-        conn.close()
         return metadata_model
 
     def pull_metadata_from_dw(self, org_id):
@@ -97,11 +95,11 @@ class ListenerService(object):
 
     def enforce_changes(self, change_log):
         for table in change_log['add']:
-            add_to_ebdb(table, org_id)
+            self.add_to_ebdb(table, org_id)
         for table in change_log['remove']:
-            remove_from_ebdb(table, org_id)
+            self.remove_from_ebdb(table, org_id)
         for table in change_log['modify']:
-            modify_ebdb(table)
+            self.modify_ebdb(table)
 
     def add_to_ebdb(add_table, org_id):
         # add columns to the columns table
@@ -160,7 +158,7 @@ class ListenerService(object):
         update_ts = tables_table.update().values(update_dict).where(tables_table.c.warehouse_full_table_id == modify_table['full_id'])
         self.execute_db_action('tables', update_ts, is_select=False)
         for column in modify_table['schema']:
-            columns_table = meta.tables['columns']
+            columns_table = self.meta.tables['columns']
             update_dict = {columns_table.c.name: column['name'],
                            columns_table.c.description: column['description'],
                            columns_table.c.data_type: column['field_type'],
@@ -180,6 +178,3 @@ class ListenerService(object):
             return [i for i in res]
             conn.close()
         conn.close()
-
-    def get_bq_gateway():
-        return BigQueryGateway()
