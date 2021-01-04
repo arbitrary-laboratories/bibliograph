@@ -26,7 +26,7 @@ class InterfaceService(object):
         return [(i.table_id,
                  i.name,
                  i.description,
-                 i.pii_flag,
+                 i.annotation,
                  i.warehouse_full_table_id) for i in results]
 
     def table_load(self, table_id):
@@ -43,12 +43,11 @@ class InterfaceService(object):
         results = self.execute_db_action('columns', columns_sel, is_select=True)
         return results
 
-    def edit_ii_flag(self, id, edit_target, pii_flag):
+    def edit_annotation(self, id, edit_target, changed_annotation):
         # id is either column_id or table_id
         # edit_target is either 'columns' or 'tables'
-        # pii_flag is a boolean
         table = self.meta.tables[edit_target]
-        update_dict = {table.c.pii_flag: pii_flag}
+        update_dict = {table.c.annotation: changed_annotation}
         if edit_target == 'columns':
             update = table.update().values(update_dict).where(table.c.column_id == id)
         elif edit_target == 'tables':
