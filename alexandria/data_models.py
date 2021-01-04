@@ -20,7 +20,7 @@ class Table(Base):
     org_id = Column(String)
     name = Column(String)
     description = Column(String)
-    annotation = Column(String)
+    pii_flag = Column(Boolean)
     warehouse = Column(String)
     warehouse_full_table_id = Column(String) #unique identifier
     changed_time = Column(DateTime)
@@ -38,7 +38,7 @@ class Column(Base):
     data_type = Column(String)
     name = Column(String)
     description = Column(String)
-    annotation = Column(String)
+    pii_flag = Column(Boolean)
     warehouse_full_column_id = Column(String)
     changed_time = Column(DateTime)
     version = Column(Integer)
