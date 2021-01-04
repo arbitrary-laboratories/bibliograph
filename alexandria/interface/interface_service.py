@@ -46,6 +46,7 @@ class InterfaceService(object):
     def edit_ii_flag(self, id, edit_target, pii_flag):
         # id is either column_id or table_id
         # edit_target is either 'columns' or 'tables'
+        # pii_flag is a boolean
         table = self.meta.tables[edit_target]
         update_dict = {table.c.pii_flag: pii_flag}
         if edit_target == 'columns':
