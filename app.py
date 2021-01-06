@@ -3,6 +3,7 @@ import settings
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from alexandria.data_models import db
+from db_client import DbClient
 
 from alexandria.bq_gateway import BigQueryGateway
 
@@ -14,6 +15,19 @@ db.init_app(app)
 CORS(app)
 
 
+@app.route('/orgs/<org_uuid>/tables', methods=['GET'])
+def get_tables_for_org(org_uuid):
+    client = DbClient()
+    res = client.get_tables_for_org(org_uuid)
+    return jsonify(res)
+
+@app.route('/orgs/<org_uuid>/tables/<table_uuid>/columns', methods=['GET'])
+def get_columns_for_table(org_uuid, table_uuid):
+    client = DbClient()
+    res = client.get_columns_for_table(org_uuid, table_uuid)
+    return jsonify(res)
+
+# TODO Deprecate
 @app.route('/tables', methods=['GET'])
 def get_project_tables():
     project = request.args.get('project')
@@ -22,6 +36,7 @@ def get_project_tables():
     tables = gateway.get_tables(project, dataset)
     return jsonify(tables)
 
+# TODO Deprecate
 @app.route('/table_metadata', methods=['GET'])
 def get_metadata():
     project = request.args.get('project')
