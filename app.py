@@ -20,9 +20,10 @@ def get_metadata():
     project = request.args.get('project')
     dataset = request.args.get('dataset')
     table_name = request.args.get('tablename')
+
     gateway = BigQueryGateway()
-    schema, num_rows = gateway.get_bq_table_metadata(project, dataset, table_name)
-    return jsonify([gateway.serialize_schema(schema), num_rows])
+    description, schema, num_rows, table_id = gateway.get_bq_table_metadata(project, dataset, table_name)
+    return jsonify([gateway.serialize_schema(schema, table_id), description, num_rows])
 
 @app.route('/update_local_schema', methods=['POST'])
 def update_local_schema():
