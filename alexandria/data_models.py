@@ -6,6 +6,7 @@ from sqlalchemy.ext.declarative import declarative_base
 db = SQLAlchemy()
 
 # TODO (tony), use incremental IDs, and rename to UUID
+# TODO (tony), add fk constraints
 class Organization(db.Model):
     __tablename__ = "organizations"
 
@@ -31,7 +32,7 @@ class Table(db.Model):
     version = Column(Integer)
     is_latest = Column(Boolean)
 
-class Column(db.Model):
+class ColumnInfo(db.Model):
     __tablename__ = "columns"
 
     column_id = Column(String,
