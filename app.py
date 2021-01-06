@@ -1,11 +1,17 @@
+import settings
+
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+from alexandria.data_models import db
 
 from alexandria.bq_gateway import BigQueryGateway
+
 app = Flask(__name__)
+db.init_app(app)
 
 # Temporary
 CORS(app)
+
 
 @app.route('/tables', methods=['GET'])
 def get_project_tables():
@@ -61,4 +67,8 @@ def get_qh():
     return jsonify(gateway.get_query_history())
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.config.from_object(settings)
+    app.run()
+
+    with app.app_context():
+        db.create_all()

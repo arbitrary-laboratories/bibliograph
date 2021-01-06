@@ -1,9 +1,12 @@
+from flask_sqlalchemy import SQLAlchemy
+
 from sqlalchemy import Column, DateTime, Integer, String, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 
-Base = declarative_base()
+db = SQLAlchemy()
 
-class Organization(Base):
+# TODO (tony), use incremental IDs, and rename to UUID
+class Organization(db.Model):
     __tablename__ = "organizations"
 
     org_id = Column(String,
@@ -11,7 +14,7 @@ class Organization(Base):
                    )
     name = Column(String)
 
-class Table(Base):
+class Table(db.Model):
     __tablename__ = "tables"
 
     table_id = Column(String,
@@ -20,6 +23,7 @@ class Table(Base):
     org_id = Column(String)
     name = Column(String)
     description = Column(String)
+    # TODO (tony) - is_pii
     pii_flag = Column(Boolean)
     warehouse = Column(String)
     warehouse_full_table_id = Column(String) #unique identifier
@@ -27,7 +31,7 @@ class Table(Base):
     version = Column(Integer)
     is_latest = Column(Boolean)
 
-class Column(Base):
+class Column(db.Model):
     __tablename__ = "columns"
 
     column_id = Column(String,
