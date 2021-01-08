@@ -74,6 +74,7 @@ class ColumnInfo(db.Model):
     version = Column(Integer)
     is_latest = Column(Boolean)
 
+<<<<<<< HEAD
     def __init__(self, name, table_info, data_type):
         self.name = name
         self.uuid = uuid.uuid4().__str__()
@@ -92,3 +93,11 @@ class ColumnInfo(db.Model):
             pii_flag = self.pii_flag,
             changed_time = self.changed_time
         )
+=======
+def __init__(self, name, table_info, data_type):
+    self.name = name
+    self.uuid = uuid.uuid4().__str__()
+    self.table_info = table_info
+    self.org = table_info.org
+    self.data_type = data_type
+>>>>>>> 5ee4323 (added query table data models)
