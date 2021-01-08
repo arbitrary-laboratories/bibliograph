@@ -73,9 +73,19 @@ class BigQueryGateway(object):
         with open(save_path, 'wb') as f:
             pkl.dump(save_schema, f)
 
-    def get_query_history(self):
-        jobs = self.client.list_jobs(all_users=True, max_results=10)
-        return [job.query for job in jobs]
+    def get_job_history(self, results_returned=10):
+        jobs = self.client.list_jobs(all_users=True, max_results=results_returned)
+        jobs_list = []
+        for job in jobs:
+            if job.job_type == 'load':
+                jobs_list.append((job.job_type, job.destination))
+            elif job.job_type == 'query':
+                jobs_list.append((job.job_type, job.query))
+            elif job.job_type == 'copy':
+                jobs_list.append((job.job_type, job.destination))
+            elif job.job_type == 'extract':
+                jobs_list.append((job.job_type, job.destination_uris))
+        return jobs_list
 
     def serialize_schema(self, schema_obj, full_table_id):
         ret_list = []
