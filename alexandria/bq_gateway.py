@@ -73,19 +73,38 @@ class BigQueryGateway(object):
         with open(save_path, 'wb') as f:
             pkl.dump(save_schema, f)
 
-    def get_job_history(self, results_returned=10):
-        jobs = self.client.list_jobs(all_users=True, max_results=results_returned)
-        jobs_list = []
-        for job in jobs:
-            if job.job_type == 'load':
-                jobs_list.append((job.job_type, job.destination))
-            elif job.job_type == 'query':
-                jobs_list.append((job.job_type, job.query))
-            elif job.job_type == 'copy':
-                jobs_list.append((job.job_type, job.destination))
-            elif job.job_type == 'extract':
-                jobs_list.append((job.job_type, job.destination_uris))
-        return jobs_list
+    def get_last_jobs(self,
+                        min_creation_time,
+                        page_token=None):
+        jobs = self.pagination_call_list_jobs(min_creation_time, results_returned)
+        return [self.process_job(i) for i in jobs]
+
+    def pagination_call_list_jobs(self, min_creation_time, page_token=None):
+        current_page = self.client.list_jobs(all_users=True,
+                                             page_token=page_token,
+                                             min_creation_time=min_creation_time)
+        accumulated_jobs = self.get_page_jobs(current_page)
+        while current_page.next_page_token is not None:
+            next_page = self.client.list_jobs(all_users=True,
+                                              page_token = current_page.next_page_token,
+                                              min_creation_time=min_creation_time)
+            next_page_resources = self.get_page_jobs(next_page)
+            accumulated_jobs.extend(next_page_resources)
+            current_page = next_page
+        return accumulated_jobs
+
+    def get_page_jobs(self, page):
+        return list(current_page)
+
+    def process_job(self, job_obj):
+        if job.job_type == 'load':
+            return (job.job_type, job.destination)
+        elif job.job_type == 'query':
+            return (job.job_type, job.query)
+        elif job.job_type == 'copy':
+            return (job.job_type, job.destination)
+        elif job.job_type == 'extract':
+            return (job.job_type, job.destination_uris)
 
     def serialize_schema(self, schema_obj, full_table_id):
         ret_list = []

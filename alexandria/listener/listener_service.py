@@ -11,6 +11,7 @@ from alexandria.utils import get_bq_gateway
 
 class ListenerService(object):
     def __init__(self, db_path):
+        self.interval = 5 # how often, in minutes to poll the dw
         self.db_path = db_path
         self.gateway = get_bq_gateway() #datawarehouse_map[warehouse_type]()
         self.engine = create_engine('sqlite:///{path}/exabyte.db'.format(path=self.db_path), echo=True)
