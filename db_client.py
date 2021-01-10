@@ -1,6 +1,6 @@
 from alexandria.data_models import (
-    Organization,
-    Table,
+    Org,
+    TableInfo,
     ColumnInfo,
     db,
 )
@@ -19,7 +19,7 @@ class DbClient(object):
         """ Returns all tables for an org """
 
 
-        q = db.session.query(Table).filter_by(org_id=org_id)
+        q = db.session.query(TableInfo).filter_by(org_id=org_id)
 
         return [
             {
@@ -40,7 +40,7 @@ class DbClient(object):
 
     def table_load(self, table_id):
         """ returns table for a given table_id """
-        q = db.session.query(Table).filter_by(table_id=table_id)
+        q = db.session.query(TableInfo).filter_by(table_id=table_id)
         return q.all()
 
     def get_columns_for_table(self, org_id, table_id):
@@ -69,7 +69,7 @@ class DbClient(object):
 
     def edit_table_pii_flag(self, table_id, pii_flag):
         """ update the pii flag for a table, returns table"""
-        q = db.session.query(Table).filter_by(table_id=table_id)
+        q = db.session.query(TableInfo).filter_by(table_id=table_id)
         table = q.first()
         table.pii_flag = pii_flag
         db.session.commit()

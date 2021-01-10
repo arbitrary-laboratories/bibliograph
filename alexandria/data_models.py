@@ -1,27 +1,38 @@
+import uuid
+
 from flask_sqlalchemy import SQLAlchemy
 
-from sqlalchemy import Column, DateTime, Integer, String, Boolean
+from sqlalchemy import Column, DateTime, Integer, String, Boolean, ForeignKey
+from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 
 db = SQLAlchemy()
 
-# TODO (tony), use incremental IDs, and rename to UUID
-# TODO (tony), add fk constraints
-class Organization(db.Model):
-    __tablename__ = "organizations"
+class Org(db.Model):
+    __tablename__ = "org"
 
-    org_id = Column(String,
-                    primary_key= True,
-                   )
+    id = Column(Integer, primary_key = True)
+    uuid = Column(String, unique=True)
     name = Column(String)
 
-class Table(db.Model):
-    __tablename__ = "tables"
+    tables = relationship("TableInfo", back_populates="org")
 
-    table_id = Column(String,
-                      primary_key=True,
-                      )
-    org_id = Column(String)
+    def __init__(self, name):
+        self.name = name
+        self.uuid = uuid.uuid4().__str__()
+
+
+class TableInfo(db.Model):
+    __tablename__ = "table_info"
+
+    id = Column(Integer, primary_key = True)
+    uuid = Column(String, unique=True)
+
+    org_id = Column(Integer, ForeignKey("org.id"))
+    org = relationship("Org", back_populates="tables")
+
+    column_infos = relationship("ColumnInfo", back_populates="table_info")
+
     name = Column(String)
     description = Column(String)
     # TODO (tony) - is_pii
@@ -32,14 +43,24 @@ class Table(db.Model):
     version = Column(Integer)
     is_latest = Column(Boolean)
 
-class ColumnInfo(db.Model):
-    __tablename__ = "columns"
+    def __init__(self, name, org):
+        self.name = name
+        self.uuid = uuid.uuid4().__str__()
+        self.org = org
 
-    column_id = Column(String,
-                       primary_key=True,
-                       )
-    table_id = Column(String)
-    org_id = Column(String)
+
+class ColumnInfo(db.Model):
+    __tablename__ = "column_info"
+
+    id = Column(Integer, primary_key = True)
+    uuid = Column(String, unique=True)
+
+    table_info_id = Column(Integer, ForeignKey("table_info.id"))
+    table_info = relationship("TableInfo", back_populates="column_infos")
+
+    org_id = Column(String, ForeignKey("org.id"))
+    org = relationship("Org")
+
     data_type = Column(String)
     name = Column(String)
     description = Column(String)
@@ -48,3 +69,10 @@ class ColumnInfo(db.Model):
     changed_time = Column(DateTime)
     version = Column(Integer)
     is_latest = Column(Boolean)
+
+    def __init__(self, name, table_info, data_type):
+        self.name = name
+        self.uuid = uuid.uuid4().__str__()
+        self.table_info = table_info
+        self.org = table_info.org
+        self.data_type = data_type
