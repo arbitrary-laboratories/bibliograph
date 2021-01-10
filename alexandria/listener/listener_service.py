@@ -8,9 +8,6 @@ from uuid import uuid4
 
 from alexandria.utils import get_bq_gateway
 
-# datawarehouse_map = {
-#                      'bq': get_bq_gateway,
-#                     }
 
 class ListenerService(object):
     def __init__(self, db_path):
