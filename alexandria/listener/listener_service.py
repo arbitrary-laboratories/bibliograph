@@ -6,7 +6,7 @@ from sqlalchemy import MetaData
 from sqlalchemy.ext.declarative import declarative_base
 from uuid import uuid4
 
-from alexandria.utils import get_bq_gateway
+from alexandria.utils import get_bq_gateway, extract_tables
 
 
 class ListenerService(object):
@@ -152,7 +152,7 @@ class ListenerService(object):
                        tables_table.c.changed_time: datetime.datetime.utcnow(),
                        tables_table.c.version: (tables_table.c.version + 1),
                        tables_table.c.is_latest: True,
-                      }
+
         update_ts = tables_table.update().values(update_dict).where(tables_table.c.warehouse_full_table_id == modify_table['full_id'])
         self.execute_db_action('tables', update_ts, is_select=False)
         for column in modify_table['schema']:
@@ -167,6 +167,41 @@ class ListenerService(object):
             update_cols = columns_table.update().values(update_dict).where(columns_table.c.warehouse_full_column_id == column['warehouse_full_column_id'])
             self.execute_db_action('columns', update_cols, is_select=False)
 
+    def update_queries(self, min_creation_time, max_creation_time):
+        jobs = self.gateway.paginated_call_list_jobs(min_creation_time, max_creation_time)
+        queries = [i[1] for i in jobs if i[0] == 'query']
+        for query in queries:
+            mentioned_tables = extract_tables(query)
+            query_id = str(uuid4())
+            for table in mentioned_tables:
+                try:
+                    matched_table = self.get_extracted_table_info(table)
+                    query_map_table = self.meta.tables['query_map']
+                    query_map_ins = query_map_table.insert().values(
+                                        query_id = query_id,
+                                        query_string = query,
+                    )
+                    self.execute_db_action('query_map', query_map_ins, is_select=False)
+                    query_table = self.meta.tables['queries']
+                    query_obj_id = str(uuid4())
+                    query_ins = query_table.insert().values(
+                                  query_object_id = query_obj_id,
+                                  query_id = query_id,
+                                  table_id = matched_table['table_id'],
+                                  pii_flag = matched_table['pii_flag'],
+                              )
+                    self.execute_db_action('queries', query_ins, is_select=False)
+                except:
+                    # not correct format TODO -- make this broader
+                    continue
+
+    def get_extracted_table_info(self, full_table_id):
+        tables_table = self.meta.tables['tables']
+        full_table_id = full_table_id.replace('`', '')
+        project, dataset, table = full_table_id.split('.')
+        sel = select([tables_table]).where(tables_table.c.warehouse_full_table_id == '{0}:{1}.{2}'.format(project, dataset, table))
+        match = self.execute_db_action('tables', sel, is_select=True)
+        return [i for i in match][0]
 
     def execute_db_action(self, target_table, query, is_select=False):
         conn = self.engine.connect()
