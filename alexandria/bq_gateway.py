@@ -6,7 +6,7 @@ import json
 
 class BigQueryGateway(object):
     def __init__(self):
-        self.client = bigquery.Client()
+        self.client = bigquery.Client.from_service_account_json("path/to/key.json")
 
     def get_projects(self):
         # returns list of projects associated with the service account scope
