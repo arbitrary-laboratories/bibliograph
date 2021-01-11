@@ -1,5 +1,7 @@
 import uuid
 
+from datetime import datetime
+
 from flask_sqlalchemy import SQLAlchemy
 
 from sqlalchemy import Column, DateTime, Integer, String, Boolean, ForeignKey
@@ -42,11 +44,13 @@ class TableInfo(db.Model):
     changed_time = Column(DateTime)
     version = Column(Integer)
     is_latest = Column(Boolean)
+    pii_column_count = Column(Integer, default=0)
 
     def __init__(self, name, org):
         self.name = name
         self.uuid = uuid.uuid4().__str__()
         self.org = org
+        self.changed_time = datetime.datetime.now()
 
 
 class ColumnInfo(db.Model):
@@ -76,3 +80,15 @@ class ColumnInfo(db.Model):
         self.table_info = table_info
         self.org = table_info.org
         self.data_type = data_type
+        self.changed_time = datetime.datetime.now()
+
+    def to_dict(self):
+        return dict(
+            name = self.name,
+            uuid = self.uuid,
+            data_type = self.data_type,
+            description = self.description,
+            warehouse_full_column_id = self.warehouse_full_column_id,
+            pii_flag = self.pii_flag,
+            changed_time = self.changed_time
+        )

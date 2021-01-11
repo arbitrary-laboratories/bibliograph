@@ -21,31 +21,27 @@ def get_tables_for_org(org_uuid):
     res = client.get_tables_for_org(org_uuid)
     return jsonify(res)
 
+
 @app.route('/orgs/<org_uuid>/tables/<table_uuid>/columns', methods=['GET'])
 def get_columns_for_table(org_uuid, table_uuid):
     client = DbClient()
     res = client.get_columns_for_table(org_uuid, table_uuid)
     return jsonify(res)
 
-# TODO Deprecate
-@app.route('/tables', methods=['GET'])
-def get_project_tables():
-    project = request.args.get('project')
-    dataset = request.args.get('dataset')
-    gateway = BigQueryGateway()
-    tables = gateway.get_tables(project, dataset)
-    return jsonify(tables)
 
-# TODO Deprecate
-@app.route('/table_metadata', methods=['GET'])
-def get_metadata():
-    project = request.args.get('project')
-    dataset = request.args.get('dataset')
-    table_name = request.args.get('tablename')
+@app.route('/orgs/<org_uuid>/tables/<table_uuid>/columns/<column_uuid>', methods=['GET', 'PATCH'])
+def update_column_info(org_uuid, table_uuid, column_uuid):
+    client = DbClient()
+    res = None
+    if request.method == 'GET':
+        return "" # TODO
 
-    gateway = BigQueryGateway()
-    description, schema, num_rows, table_id = gateway.get_bq_table_metadata(project, dataset, table_name)
-    return jsonify([gateway.serialize_schema(schema, table_id), description, num_rows])
+    if request.method == 'PATCH':
+        form = request.form
+        res = client.update_column(column_uuid, **form)
+
+    return jsonify(res)
+
 
 @app.route('/update_local_schema', methods=['POST'])
 def update_local_schema():
