@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from alexandria.data_models import (
     Org,
     TableInfo,
@@ -15,16 +17,17 @@ from alexandria.utils import get_bq_gateway
 
 class DbClient(object):
 
-    def get_tables_for_org(self, org_id):
+    def get_tables_for_org(self, org_uuid):
         """ Returns all tables for an org """
 
 
-        q = db.session.query(TableInfo).filter_by(org_id=org_id)
+        q = db.session.query(TableInfo).filter(
+            TableInfo.org.has(uuid=org_uuid))
 
         return [
             {
-                'uuid': t.table_id,
-                'org_id': t.org_id,
+                'uuid': t.uuid,
+                'org_uuid': org_uuid,
                 'name': t.name,
                 'description': t.description,
                 'pii_flag': t.pii_flag,
@@ -38,22 +41,23 @@ class DbClient(object):
             in q.all()
         ]
 
-    def table_load(self, table_id):
+    def table_load(self, table_uuid):
         """ returns table for a given table_id """
-        q = db.session.query(TableInfo).filter_by(table_id=table_id)
+        q = db.session.query(TableInfo).filter_by(uuid=table_uuid)
         return q.all()
 
-    def get_columns_for_table(self, org_id, table_id):
+    def get_columns_for_table(self, org_uuid, table_uuid):
         """ returns all column metadata for a given table """
         # TODO (tony) enforce check that caller has access to this org
 
-        print(table_id)
-        q = db.session.query(ColumnInfo).filter_by(table_id=table_id)
+        q = db.session.query(ColumnInfo).filter(
+            ColumnInfo.table_info.has(uuid=table_uuid))
+
         return [
             {
-                'uuid': col.column_id,
-                'table_id': col.table_id,
-                'org_id': col.org_id,
+                'uuid': col.uuid,
+                'table_id': table_uuid,
+                'org_uuid': org_uuid,
                 'data_type': col.data_type,
                 'name': col.name,
                 'description': col.description,
@@ -67,18 +71,35 @@ class DbClient(object):
             in q.all()
         ]
 
-    def edit_table_pii_flag(self, table_id, pii_flag):
+    def edit_table_pii_flag(self, table_uuid, pii_flag):
         """ update the pii flag for a table, returns table"""
-        q = db.session.query(TableInfo).filter_by(table_id=table_id)
+        q = db.session.query(TableInfo).filter_by(uuid=table_uuid)
         table = q.first()
         table.pii_flag = pii_flag
         db.session.commit()
         return table
 
-    def edit_column_pii_flag(self, column_id, pii_flag):
+    def edit_column_pii_flag(self, column_uuid, pii_flag):
         """ update the pii flag for a column, returns column"""
-        q = db.session.query(ColumnInfo).filter_by(column_id=column_id)
+        q = db.session.query(ColumnInfo).filter_by(uuid=column_uuid)
         column = q.first()
         column.pii_flag = pii_flag
         db.session.commit()
         return column
+
+    def update_column(self, column_uuid, **kwargs):
+        # only PII is editable for now
+        q = db.session.query(ColumnInfo).filter_by(uuid=column_uuid)
+        column = q.first()
+
+        if "pii_flag" in kwargs.keys():
+            is_pii = bool(int(kwargs['pii_flag']))
+            if is_pii != column.pii_flag:
+                column.pii_flag = is_pii
+                column.changed_time = datetime.now()
+                column.table_info.changed_time = datetime.now()
+                column.table_info.pii_column_count += 1 if is_pii else -1
+
+        db.session.commit()
+
+        return column.to_dict()
