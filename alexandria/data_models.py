@@ -37,8 +37,11 @@ class TableInfo(db.Model):
 
     name = Column(String)
     description = Column(String)
-    # TODO (tony) - is_pii
+
+    qt_pii_children = relationship("QueryTablePIIAssociation",
+                                    back_populates=t_pii_parent)
     pii_flag = Column(Boolean)
+
     warehouse = Column(String)
     warehouse_full_table_id = Column(String) #unique identifier
     changed_time = Column(DateTime)

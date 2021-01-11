@@ -87,7 +87,6 @@ class DbClient(object):
         db.session.commit()
         return column
 
-<<<<<<< HEAD
     def update_column(self, column_uuid, **kwargs):
         # only PII is editable for now
         q = db.session.query(ColumnInfo).filter_by(uuid=column_uuid)
@@ -104,10 +103,3 @@ class DbClient(object):
         db.session.commit()
 
         return column.to_dict()
-=======
-    def get_queries(self, query_id):
-        """ get the query string and pii_flag for a given query"""
-        q = db.session.query(QueryInfo).filter_by(query_id=query_id)
-        q_map = db.session.query(QueryMap).filter_by(query_id=query_id)
-        return q.all(), q_map.all()
->>>>>>> f500d08 (edited the db_client to return queries)
