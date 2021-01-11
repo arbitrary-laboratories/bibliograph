@@ -38,8 +38,6 @@ class TableInfo(db.Model):
     name = Column(String)
     description = Column(String)
 
-    qt_pii_children = relationship("QueryTablePIIAssociation",
-                                    back_populates=t_pii_parent)
     pii_flag = Column(Boolean)
 
     warehouse = Column(String)
@@ -83,6 +81,7 @@ class ColumnInfo(db.Model):
         self.table_info = table_info
         self.org = table_info.org
         self.data_type = data_type
+<<<<<<< HEAD
         self.changed_time = datetime.datetime.now()
 
     def to_dict(self):
@@ -95,3 +94,47 @@ class ColumnInfo(db.Model):
             pii_flag = self.pii_flag,
             changed_time = self.changed_time
         )
+=======
+
+
+class Query(db.model):
+    __tablename__ = "query"
+
+    id = Column(Integer,
+                primary_key=True,
+                )
+    uuid = Column(String, unique=True)
+
+    org_id = Column(String, ForeignKey("org.id"))
+    org = relationship("Org")
+
+    query_string = column(String)
+    query_table_info = relationship("QueryTableInfo", back_populates=query)
+
+    def __init__(self, org, query_string):
+        self.uuid = uuid.uuid4().__str__()
+        self.org = org
+        self.query_string = query_string
+
+
+class QueryTableInfo(db.model):
+    __tablename__ = "query_table_info"
+
+    id = column(String,
+                primary_key=True,
+                )
+    uuid = Column(String, unique=True)
+
+    table_info_id = Column(Integer, ForeignKey("table_info.id"))
+    table_info = relationship("TableInfo")
+
+    query_id = Column(Integer, ForeignKey("query.id"))
+    query = relationship("Query", back_populates="query_table_info")
+
+    pii_flag = column(Boolean)
+
+    def __init__(self, name, table_info):
+        self.uuid = uuid.uuid4().__str__()
+        self.table_info = table_info
+        self.query = query
+>>>>>>> ad994a2 (revised models for the relationships mentioned)
