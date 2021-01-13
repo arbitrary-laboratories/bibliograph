@@ -73,10 +73,10 @@ def update_warehouse_schema():
                                           data['description'],
                                           data['schema_struct'])
 
-@app.route('/job_history', methods=['GET'])
-def get_jh():
-    gateway = BigQueryGateway()
-    return jsonify(gateway.get_job_history())
+# @app.route('/job_history', methods=['GET'])
+# def get_jh():
+#     gateway = BigQueryGateway()
+#     return jsonify(gateway.get_job_history())
 
 if __name__ == '__main__':
     app.run()
