@@ -97,8 +97,8 @@ class ColumnInfo(db.Model):
 =======
 
 
-class Query(db.model):
-    __tablename__ = "query"
+class QueryInfo(db.model):
+    __tablename__ = "query_info"
 
     id = Column(Integer,
                 primary_key=True,
@@ -109,7 +109,7 @@ class Query(db.model):
     org = relationship("Org")
 
     query_string = column(String)
-    query_table_info = relationship("QueryTableInfo", back_populates=query)
+    query_table_info = relationship("QueryTableInfo", back_populates=query_info)
 
     def __init__(self, org, query_string):
         self.uuid = uuid.uuid4().__str__()
@@ -128,8 +128,8 @@ class QueryTableInfo(db.model):
     table_info_id = Column(Integer, ForeignKey("table_info.id"))
     table_info = relationship("TableInfo")
 
-    query_id = Column(Integer, ForeignKey("query.id"))
-    query = relationship("Query", back_populates="query_table_info")
+    query_id = Column(Integer, ForeignKey("query_info.id"))
+    query_info = relationship("QueryInfo", back_populates="query_table_info")
 
     pii_flag = column(Boolean)
 

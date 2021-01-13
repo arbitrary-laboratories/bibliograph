@@ -43,16 +43,25 @@ class DbClient(object):
 
     def table_load(self, table_uuid):
         """ returns table for a given table_id """
+<<<<<<< HEAD
         q = db.session.query(TableInfo).filter_by(uuid=table_uuid)
+=======
+        q = db.session.query(TableInfo).filter_by(id=id)
+>>>>>>> 3b0fd15 (revised db_client code for new data models)
         return q.all()
 
     def get_columns_for_table(self, org_uuid, table_uuid):
         """ returns all column metadata for a given table """
         # TODO (tony) enforce check that caller has access to this org
 
+<<<<<<< HEAD
         q = db.session.query(ColumnInfo).filter(
             ColumnInfo.table_info.has(uuid=table_uuid))
 
+=======
+        print(table_id)
+        q = db.session.query(ColumnInfo).filter_by(table_info_id=table_id)
+>>>>>>> 3b0fd15 (revised db_client code for new data models)
         return [
             {
                 'uuid': col.uuid,
@@ -73,7 +82,11 @@ class DbClient(object):
 
     def edit_table_pii_flag(self, table_uuid, pii_flag):
         """ update the pii flag for a table, returns table"""
+<<<<<<< HEAD
         q = db.session.query(TableInfo).filter_by(uuid=table_uuid)
+=======
+        q = db.session.query(TableInfo).filter_by(id=table_id)
+>>>>>>> 3b0fd15 (revised db_client code for new data models)
         table = q.first()
         table.pii_flag = pii_flag
         db.session.commit()
@@ -81,12 +94,17 @@ class DbClient(object):
 
     def edit_column_pii_flag(self, column_uuid, pii_flag):
         """ update the pii flag for a column, returns column"""
+<<<<<<< HEAD
         q = db.session.query(ColumnInfo).filter_by(uuid=column_uuid)
+=======
+        q = db.session.query(ColumnInfo).filter_by(id=column_id)
+>>>>>>> 3b0fd15 (revised db_client code for new data models)
         column = q.first()
         column.pii_flag = pii_flag
         db.session.commit()
         return column
 
+<<<<<<< HEAD
     def update_column(self, column_uuid, **kwargs):
         # only PII is editable for now
         q = db.session.query(ColumnInfo).filter_by(uuid=column_uuid)
@@ -103,3 +121,10 @@ class DbClient(object):
         db.session.commit()
 
         return column.to_dict()
+=======
+    def get_queries(self, query_id):
+        """ get the query string and pii_flag for a given query"""
+        q = db.session.query(QueryInfo).filter(QueryInfo.query_table_info.id=query_id)
+        query = q.first()
+        return query
+>>>>>>> 3b0fd15 (revised db_client code for new data models)
