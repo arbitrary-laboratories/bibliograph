@@ -8,36 +8,41 @@ from uuid import uuid4
 
 from alexandria.utils import get_bq_gateway, extract_tables
 
+from alexandria.data_models import (
+    Org,
+    TableInfo,
+    ColumnInfo,
+    db,
+)
+
 
 class ListenerService(object):
-    def __init__(self, db_path):
+    def __init__(self, db_path, org_id):
         self.interval = 5 # how often, in minutes to poll the dw
         self.db_path = db_path
         self.gateway = get_bq_gateway() #datawarehouse_map[warehouse_type]()
         self.engine = create_engine('sqlite:///{path}/exabyte.db'.format(path=self.db_path), echo=True)
         self.meta = MetaData(self.engine)
         self.meta.reflect()
+        self.max_table_id = db.session.query(func.max(TableInfo.id).label("max_id")).one().max_id
+        self.max_column_id = db.session.query(func.max(TableInfo.id).label("max_id")).one().max_id
 
     def pull_metadata_from_ebdb(self, org_id):
         metadata_model = []
-        query_table = self.meta.tables['tables']
-        query = select([query_table]).where(query_table.c.org_id == org_id)
-        tables = self.execute_db_action('tables', query, is_select=True)
-        for table_obj in tables:
-            query_table = self.meta.tables['columns']
-            query = select([query_table]).where(query_table.c.table_id == table_obj['table_id'])
-            columns = self.execute_db_action('columns', query, is_select=True)
+        tables = db.session.query(TableInfo).filter(TableInfo.org_id=org_id)
+        for table_obj in tables.all():
+            columns = table_obj.column_infos
             cs = []
             for col_obj in columns:
-                warehouse_column_id = '{0}.{1}'.format(table_obj['warehouse_full_table_id'], col_obj['name'])
-                c = {'name': col_obj['name'],
-                     'description': col_obj['description'],
-                     'field_type': col_obj['data_type'],
+                warehouse_column_id = '{0}.{1}'.format(table_obj.warehouse_full_table_id, col_obj.name)
+                c = {'name': col_obj.name,
+                     'description': col_obj.description,
+                     'field_type': col_obj.data_type.,
                      'warehouse_full_column_id': warehouse_column_id}
                 cs.append(c)
-            t = {'name': table_obj['name'],
-                 'description': table_obj['description'],
-                 'full_id': table_obj['warehouse_full_table_id'],
+            t = {'name': table_obj.name,
+                 'description': table_obj.description,
+                 'full_id': table_obj.warehouse_full_table_id,
                  'schema': cs}
             metadata_model.append(t)
         return metadata_model
@@ -47,7 +52,7 @@ class ListenerService(object):
         for project in self.gateway.get_projects():
             for dataset in self.gateway.get_datasets(project):
                 for table in self.gateway.get_tables(project, dataset):
-                    description, schema, num_rows, full_id  = self.gateway.get_bq_table_metadata(project, dataset, table)
+                    description, schema, full_id  = self.gateway.get_bq_table_metadata(project, dataset, table)
                     serialized_schema = self.gateway.serialize_schema(schema, full_id)
                     metadata_model.append({'name': table,
                                            'description': description,
@@ -100,28 +105,27 @@ class ListenerService(object):
             self.modify_ebdb(table)
 
     def add_to_ebdb(add_table, org_id):
-        # add columns to the columns table
         add_table_id = str(uuid4())
+        add_columns = []
         for column in add_table['schema']:
             add_column_id = str(uuid4())
-            cols_table = self.meta.tables['columns']
-            col_ins = cols_table.insert().values(
-                          column_id = add_column_id,
-                          table_id = add_table_id,
-                          org_id = org_id,
-                          data_type = column['field_type'],
-                          name = column['name'],
-                          description = column['description'],
-                          pii_flag = False,
-                          warehouse_full_column_id = '{0}.{1}'.format(add_table['full_id'], column['name']),
-                          changed_time = None,
-                          version = 0,
-                          is_latest = True,
-                      )
-            self.execute_db_action('columns', col_ins, is_select=False)
-        #add to the tables table
-        tables_table = self.meta.tables['tables']
-        table_ins = tables_table.insert().values(
+            insert_column = ColumnInfo(
+                              id = (self.max_column_id + 1),
+                              uuid = add_column_id,
+                              table_info_id = (self.max_table_id + 1),
+                              org_id = org_id,
+                              data_type = column['field_type'],
+                              name = column['name'],
+                              description = column['description'],
+                              pii_flag = False,
+                              warehouse_full_column_id = '{0}.{1}'.format(add_table['full_id'], column['name']),
+                              changed_time = None,
+                              version = 0,
+                              is_latest = True,
+                            )
+            add_columns.append(insert_column)
+            self.max_column_id += 1
+        insert_table = TableInfo(
                         table_id = add_table_id,
                         org_id = org_id,
                         name = add_table['name'],
@@ -132,76 +136,73 @@ class ListenerService(object):
                         changed_time= None,
                         version= 0,
                         is_latest= True,
+                        column_infos= add_columns,
                     )
-        self.execute_db_action('tables', table_ins, is_select=False)
+        self.max_table_id += 1
+        db.session.add(insert_table)
+        db.session.commit()
 
     def remove_from_ebdb(remove_table):
-        for column in remove_table['schema']:
-            columns_table = self.meta.tables['columns']
-            col_del = columns_table.delete().where(columns_table.c.warehouse_full_column_id == column['warehouse_full_column_id'])
-            self.execute_db_action('columns', col_del, is_select=False)
-        tables_table = self.meta.tables['tables']
-        table_del = tables_table.delete().where(tables_table.c.warehouse_full_table_id == remove_table['warehouse_full_table_id'])
-        self.execute_db_action('tables', table_del, is_select=False)
+        table_del = db.session.query(TableInfo).filter(TableInfo.warehouse_full_table_id == remove_table['warehouse_full_table_id'])
+        table_del.column_infos.delete()
+        table_del.delete()
+        db.session.commit()
 
     def modify_ebdb(self, modify_table):
-        tables_table = self.meta.tables['tables']
-        # modify the tables table
-        update_dict = {tables_table.c.name: modify_table['name'],
-                       tables_table.c.description: modify_table['description'],
-                       tables_table.c.changed_time: datetime.datetime.utcnow(),
-                       tables_table.c.version: (tables_table.c.version + 1),
-                       tables_table.c.is_latest: True,
-
-        update_ts = tables_table.update().values(update_dict).where(tables_table.c.warehouse_full_table_id == modify_table['full_id'])
-        self.execute_db_action('tables', update_ts, is_select=False)
+        update_table = db.session.query(TableInfo).filter_by(warehouse_full_table_id = modify_table['full_id'])
+        update_table.name = modify_table['name']
+        update_table.description = modify_table['description']
+        update_table.changed_time = datetime.datetime.utcnow()
+        update_table.version = (tables_table.c.version + 1)
+        update_table.is_latest = True
+        update_columns = []
         for column in modify_table['schema']:
-            columns_table = self.meta.tables['columns']
-            update_dict = {columns_table.c.name: column['name'],
-                           columns_table.c.description: column['description'],
-                           columns_table.c.data_type: column['field_type'],
-                           columns_table.c.changed_time: datetime.datetime.utcnow(),
-                           columns_table.c.version: (columns_table.c.version + 1),
-                           columns_table.c.is_latest: True,
-                          }
-            update_cols = columns_table.update().values(update_dict).where(columns_table.c.warehouse_full_column_id == column['warehouse_full_column_id'])
-            self.execute_db_action('columns', update_cols, is_select=False)
+            update_column = update_table.column_infos.filter_by(warehouse_full_column_id = column['warehouse_full_column_id'])
+            update_column.name = column['name'],
+            update_column.description = column['description']
+            update_column.data_type = column['field_type']
+            update_column.changed_time = datetime.datetime.utcnow()
+            update_column.version = (columns_table.c.version + 1)
+            update_column.is_latest = True
+            update_columns.append(update_column)
+        update_table.column_infos = update_columns
+        db.session.commit()
 
     def update_queries(self, min_creation_time, max_creation_time):
         jobs = self.gateway.paginated_call_list_jobs(min_creation_time, max_creation_time)
         queries = [i[1] for i in jobs if i[0] == 'query']
         for query in queries:
             mentioned_tables = extract_tables(query)
-            query_id = str(uuid4())
+            query_uuid = str(uuid4())
+            insert_query_info = QueryInfo(
+                                    uuid = query_uuid,
+                                    query_string = query,
+            )
+            query_table_infos = []
             for table in mentioned_tables:
+                query_table_uuid = str(uuid4())
                 try:
-                    matched_table = self.get_extracted_table_info(table)
-                    query_map_table = self.meta.tables['query_map']
-                    query_map_ins = query_map_table.insert().values(
-                                        query_id = query_id,
-                                        query_string = query,
-                    )
-                    self.execute_db_action('query_map', query_map_ins, is_select=False)
-                    query_table = self.meta.tables['queries']
-                    query_obj_id = str(uuid4())
-                    query_ins = query_table.insert().values(
-                                  query_object_id = query_obj_id,
-                                  query_id = query_id,
-                                  table_id = matched_table['table_id'],
-                                  pii_flag = matched_table['pii_flag'],
-                              )
-                    self.execute_db_action('queries', query_ins, is_select=False)
+                    extracted_table_name = get_extracted_table_name(table)
+                    table_obj = db.session.query(TableInfo).filter(TableInfo.warehouse_full_table_id=extracted_table_name)
+                    insert_query_table_info = QueryTableInfo(
+                                                  uuid = query_table_uuid,
+                                                  table_info = table_obj,
+                                                  pii_flag = table_obj.pii_flag,
+                                                  )
+
+                    query_table_infos.append(insert_query_table_info)
                 except:
                     # not correct format TODO -- make this broader
                     continue
+            insert_query_info.query_table_info = query_table_infos
+            db.session.commit()
 
-    def get_extracted_table_info(self, full_table_id):
-        tables_table = self.meta.tables['tables']
+
+    def get_extracted_table_name(self, full_table_id):
         full_table_id = full_table_id.replace('`', '')
         project, dataset, table = full_table_id.split('.')
-        sel = select([tables_table]).where(tables_table.c.warehouse_full_table_id == '{0}:{1}.{2}'.format(project, dataset, table))
-        match = self.execute_db_action('tables', sel, is_select=True)
-        return [i for i in match][0]
+        return '{0}:{1}.{2}'.format(project, dataset, table))
+
 
     def execute_db_action(self, target_table, query, is_select=False):
         conn = self.engine.connect()

@@ -10,6 +10,20 @@ from sqlalchemy.ext.declarative import declarative_base
 
 db = SQLAlchemy()
 
+#######################################################
+# ORM Models:
+# (-> is one directional, <-> is bidrectional)
+#
+# One -> Many
+#   - Org       <-> TableInfo
+#   - TableInfo <-> ColumnInfo
+#   - QueryInfo <-> QueryTableInfo
+#
+# One -> One
+#   - QueryTableInfo <-> TableInfo
+#######################################################
+
+
 class Org(db.Model):
     __tablename__ = "org"
 
@@ -17,7 +31,7 @@ class Org(db.Model):
     uuid = Column(String, unique=True)
     name = Column(String)
 
-    tables = relationship("TableInfo", back_populates="org")
+    tables = relationship("TableInfo", back_populates="orgs")
 
     def __init__(self, name):
         self.name = name
@@ -27,17 +41,18 @@ class Org(db.Model):
 class TableInfo(db.Model):
     __tablename__ = "table_info"
 
-    id = Column(Integer, primary_key = True)
+    id = Column(Integer, primary_key=True)
     uuid = Column(String, unique=True)
 
     org_id = Column(Integer, ForeignKey("org.id"))
-    org = relationship("Org", back_populates="tables")
+    orgs = relationship("Org", back_populates="tables")
 
     column_infos = relationship("ColumnInfo", back_populates="table_info")
+    query_table_info = relationship("QueryTableInfo", uselist=False, back_populates="table_info")
 
     name = Column(String)
     description = Column(String)
-
+    annotation = Column(String)
     pii_flag = Column(Boolean)
 
     warehouse = Column(String)
@@ -69,7 +84,9 @@ class ColumnInfo(db.Model):
     data_type = Column(String)
     name = Column(String)
     description = Column(String)
+    annotation = Column(String)
     pii_flag = Column(Boolean)
+    
     warehouse_full_column_id = Column(String)
     changed_time = Column(DateTime)
     version = Column(Integer)
@@ -105,11 +122,8 @@ class QueryInfo(db.model):
                 )
     uuid = Column(String, unique=True)
 
-    org_id = Column(String, ForeignKey("org.id"))
-    org = relationship("Org")
-
     query_string = column(String)
-    query_table_info = relationship("QueryTableInfo", back_populates=query_info)
+    query_table_info = relationship("QueryTableInfo", back_populates="query_info")
 
     def __init__(self, org, query_string):
         self.uuid = uuid.uuid4().__str__()
@@ -126,7 +140,7 @@ class QueryTableInfo(db.model):
     uuid = Column(String, unique=True)
 
     table_info_id = Column(Integer, ForeignKey("table_info.id"))
-    table_info = relationship("TableInfo")
+    table_info = relationship("TableInfo", back_populates="query_table_info")
 
     query_id = Column(Integer, ForeignKey("query_info.id"))
     query_info = relationship("QueryInfo", back_populates="query_table_info")
