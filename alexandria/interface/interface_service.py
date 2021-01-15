@@ -6,14 +6,11 @@ from sqlalchemy.ext.declarative import declarative_base
 
 from alexandria.utils import get_bq_gateway
 
-# datawarehouse_map = {
-#                      'bq': get_bq_gateway,
-#                     }
 
 class InterfaceService(object):
     def __init__(self, db_path):
         self.db_path = db_path
-        self.gateway = get_bq_gateway() #datawarehouse_map[warehouse_type]()
+        self.gateway = get_bq_gateway()
         self.engine = create_engine('sqlite:///{path}/exabyte.db'.format(path=self.db_path), echo=True)
         self.meta = MetaData(self.engine)
         self.meta.reflect()
@@ -43,7 +40,7 @@ class InterfaceService(object):
         results = self.execute_db_action('columns', columns_sel, is_select=True)
         return results
 
-    def edit_ii_flag(self, id, edit_target, pii_flag):
+    def edit_pii_flag(self, id, edit_target, pii_flag):
         # id is either column_id or table_id
         # edit_target is either 'columns' or 'tables'
         # pii_flag is a boolean

@@ -6,7 +6,7 @@ import json
 
 class BigQueryGateway(object):
     def __init__(self):
-        self.client = bigquery.Client()
+        self.client = bigquery.Client.from_service_account_json("path/to/key.json")
 
     def get_projects(self):
         # returns list of projects associated with the service account scope
@@ -25,7 +25,7 @@ class BigQueryGateway(object):
         # returns list of bq SchemaField objects
         table_id = '{0}.{1}.{2}'.format(project, dataset, table_name)
         table = self.client.get_table(table_id)
-        return table.description, table.schema, table.num_rows, table.full_table_id
+        return table.description, table.schema, table.full_table_id
 
     def create_schema_object_from_json(self, schema_struct):
         # returns a valid bigquery schema from locally stored json representation
@@ -73,9 +73,42 @@ class BigQueryGateway(object):
         with open(save_path, 'wb') as f:
             pkl.dump(save_schema, f)
 
-    def get_query_history(self):
-        jobs = self.client.list_jobs(all_users=True, max_results=10)
-        return [job.query for job in jobs]
+    def get_last_jobs(self,
+                        min_creation_time,
+                        page_token=None):
+        jobs = self.pagination_call_list_jobs(min_creation_time, results_returned)
+        return [self.process_job(i) for i in jobs]
+
+    def paginated_call_list_jobs(self,
+                                 min_creation_time,
+                                 max_creation_time):
+        current_page = self.client.list_jobs(all_users=True,
+                                             page_token=page_token,
+                                             min_creation_time=min_creation_time,
+                                             max_creation_time=max_creation_time)
+        accumulated_jobs = self.get_page_jobs(current_page)
+        while current_page.next_page_token is not None:
+            next_page = self.client.list_jobs(all_users=True,
+                                              page_token = current_page.next_page_token,
+                                              min_creation_time=min_creation_time,
+                                              max_creation_time=max_creation_time)
+            next_page_resources = self.get_page_jobs(next_page)
+            accumulated_jobs.extend(next_page_resources)
+            current_page = next_page
+        return accumulated_jobs
+
+    def get_page_jobs(self, page):
+        return list(current_page)
+
+    def process_job(self, job_obj):
+        if job_obj.job_type == 'load':
+            return (job_obj.job_type, job_obj.destination)
+        elif job_obj.job_type == 'query':
+            return (job_obj.job_type, job_obj.query)
+        elif job_obj.job_type == 'copy':
+            return (job_obj.job_type, job_obj.destination)
+        elif job_obj.job_type == 'extract':
+            return (job_obj.job_type, job_obj.destination_uris)
 
     def serialize_schema(self, schema_obj, full_table_id):
         ret_list = []
