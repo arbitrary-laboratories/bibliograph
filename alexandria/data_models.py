@@ -86,7 +86,7 @@ class ColumnInfo(db.Model):
     description = Column(String)
     annotation = Column(String)
     pii_flag = Column(Boolean)
-    
+
     warehouse_full_column_id = Column(String)
     changed_time = Column(DateTime)
     version = Column(Integer)
@@ -114,7 +114,7 @@ class ColumnInfo(db.Model):
 =======
 
 
-class QueryInfo(db.model):
+class QueryInfo(db.Model):
     __tablename__ = "query_info"
 
     id = Column(Integer,
@@ -122,7 +122,7 @@ class QueryInfo(db.model):
                 )
     uuid = Column(String, unique=True)
 
-    query_string = column(String)
+    query_string = Column(String)
     query_table_info = relationship("QueryTableInfo", back_populates="query_info")
 
     def __init__(self, org, query_string):
@@ -131,10 +131,10 @@ class QueryInfo(db.model):
         self.query_string = query_string
 
 
-class QueryTableInfo(db.model):
+class QueryTableInfo(db.Model):
     __tablename__ = "query_table_info"
 
-    id = column(String,
+    id = Column(String,
                 primary_key=True,
                 )
     uuid = Column(String, unique=True)
@@ -145,7 +145,7 @@ class QueryTableInfo(db.model):
     query_id = Column(Integer, ForeignKey("query_info.id"))
     query_info = relationship("QueryInfo", back_populates="query_table_info")
 
-    pii_flag = column(Boolean)
+    pii_flag = Column(Boolean)
 
     def __init__(self, name, table_info):
         self.uuid = uuid.uuid4().__str__()
