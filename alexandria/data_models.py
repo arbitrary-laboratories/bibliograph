@@ -112,20 +112,20 @@ class ColumnInfo(db.Model):
         )
 
 class QueryInfo(db.Model):
-     __tablename__ = "query_info"
+    __tablename__ = "query_info"
 
-     id = Column(Integer,
-                 primary_key=True,
-                 )
-     uuid = Column(String, unique=True)
+    id = Column(Integer,
+         primary_key=True,
+         )
+    uuid = Column(String, unique=True)
 
-     query_string = Column(String)
-     query_table_info = relationship("QueryTableInfo", back_populates="query_info")
+    query_string = Column(String)
+    query_table_info = relationship("QueryTableInfo", back_populates="query_info")
 
-     def __init__(self, org, query_string):
-         self.uuid = uuid.uuid4().__str__()
-         self.org = org
-         self.query_string = query_string
+    def __init__(self, org, query_string):
+        self.uuid = uuid.uuid4().__str__()
+        self.org = org
+        self.query_string = query_string
 
 
 class QueryTableInfo(db.Model):
@@ -145,6 +145,6 @@ class QueryTableInfo(db.Model):
     pii_flag = Column(Boolean)
 
     def __init__(self, name, table_info):
-     self.uuid = uuid.uuid4().__str__()
-     self.table_info = table_info
-     self.query = query
+        self.uuid = uuid.uuid4().__str__()
+        self.table_info = table_info
+        self.query = query

@@ -29,7 +29,7 @@ class ListenerService(object):
 
     def pull_metadata_from_ebdb(self, org_id):
         metadata_model = []
-        tables = db.session.query(TableInfo).filter(TableInfo.org_id=org_id)
+        tables = db.session.query(TableInfo).filter(TableInfo.org_id == org_id)
         for table_obj in tables.all():
             columns = table_obj.column_infos
             cs = []
@@ -37,7 +37,7 @@ class ListenerService(object):
                 warehouse_column_id = '{0}.{1}'.format(table_obj.warehouse_full_table_id, col_obj.name)
                 c = {'name': col_obj.name,
                      'description': col_obj.description,
-                     'field_type': col_obj.data_type.,
+                     'field_type': col_obj.data_type,
                      'warehouse_full_column_id': warehouse_column_id}
                 cs.append(c)
             t = {'name': table_obj.name,
@@ -183,7 +183,7 @@ class ListenerService(object):
                 query_table_uuid = str(uuid4())
                 try:
                     extracted_table_name = get_extracted_table_name(table)
-                    table_obj = db.session.query(TableInfo).filter(TableInfo.warehouse_full_table_id=extracted_table_name)
+                    table_obj = db.session.query(TableInfo).filter(TableInfo.warehouse_full_table_id == extracted_table_name)
                     insert_query_table_info = QueryTableInfo(
                                                   uuid = query_table_uuid,
                                                   table_info = table_obj,
@@ -201,7 +201,7 @@ class ListenerService(object):
     def get_extracted_table_name(self, full_table_id):
         full_table_id = full_table_id.replace('`', '')
         project, dataset, table = full_table_id.split('.')
-        return '{0}:{1}.{2}'.format(project, dataset, table))
+        return '{0}:{1}.{2}'.format(project, dataset, table)
 
 
     def execute_db_action(self, target_table, query, is_select=False):
