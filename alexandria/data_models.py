@@ -4,11 +4,14 @@ from datetime import datetime
 
 from flask_sqlalchemy import SQLAlchemy
 
+from sqlalchemy import MetaData
 from sqlalchemy import Column, DateTime, Integer, String, Boolean, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 
-db = SQLAlchemy()
+
+metadata = MetaData()
+Base = declarative_base(metadata=metadata)
 
  #######################################################
  # ORM Models:
@@ -23,7 +26,7 @@ db = SQLAlchemy()
  #   - QueryTableInfo <-> TableInfo
  #######################################################
 
-class Org(db.Model):
+class Org(Base):
     __tablename__ = "org"
 
     id = Column(Integer, primary_key = True)
@@ -37,7 +40,7 @@ class Org(db.Model):
         self.uuid = uuid.uuid4().__str__()
 
 
-class TableInfo(db.Model):
+class TableInfo(Base):
     __tablename__ = "table_info"
 
     id = Column(Integer, primary_key = True)
@@ -69,7 +72,7 @@ class TableInfo(db.Model):
         self.changed_time = datetime.datetime.now()
 
 
-class ColumnInfo(db.Model):
+class ColumnInfo(Base):
     __tablename__ = "column_info"
 
     id = Column(Integer, primary_key = True)
@@ -111,7 +114,7 @@ class ColumnInfo(db.Model):
             changed_time = self.changed_time
         )
 
-class QueryInfo(db.Model):
+class QueryInfo(Base):
     __tablename__ = "query_info"
 
     id = Column(Integer,
@@ -128,7 +131,7 @@ class QueryInfo(db.Model):
         self.query_string = query_string
 
 
-class QueryTableInfo(db.Model):
+class QueryTableInfo(Base):
     __tablename__ = "query_table_info"
 
     id = Column(String,

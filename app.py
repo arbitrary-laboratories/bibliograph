@@ -2,7 +2,7 @@ import settings
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from alexandria.data_models import db
+from flask_db import db
 from db_client import DbClient
 
 from alexandria.bq_gateway import BigQueryGateway
