@@ -128,23 +128,23 @@ class QueryInfo(db.Model):
          self.query_string = query_string
 
 
- class QueryTableInfo(db.Model):
-     __tablename__ = "query_table_info"
+class QueryTableInfo(db.Model):
+    __tablename__ = "query_table_info"
 
-     id = Column(String,
-                 primary_key=True,
-                 )
-     uuid = Column(String, unique=True)
+    id = Column(String,
+             primary_key=True,
+             )
+    uuid = Column(String, unique=True)
 
-     table_info_id = Column(Integer, ForeignKey("table_info.id"))
-     table_info = relationship("TableInfo", back_populates="query_table_info")
+    table_info_id = Column(Integer, ForeignKey("table_info.id"))
+    table_info = relationship("TableInfo", back_populates="query_table_info")
 
-     query_id = Column(Integer, ForeignKey("query_info.id"))
-     query_info = relationship("QueryInfo", back_populates="query_table_info")
+    query_id = Column(Integer, ForeignKey("query_info.id"))
+    query_info = relationship("QueryInfo", back_populates="query_table_info")
 
-     pii_flag = Column(Boolean)
+    pii_flag = Column(Boolean)
 
-     def __init__(self, name, table_info):
-         self.uuid = uuid.uuid4().__str__()
-         self.table_info = table_info
-         self.query = query
+    def __init__(self, name, table_info):
+     self.uuid = uuid.uuid4().__str__()
+     self.table_info = table_info
+     self.query = query
