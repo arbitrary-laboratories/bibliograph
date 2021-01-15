@@ -113,6 +113,16 @@ class ColumnInfo(db.Model):
         )
 =======
 
+    def to_dict(self):
+            return dict(
+                name = self.name,
+                uuid = self.uuid,
+                data_type = self.data_type,
+                description = self.description,
+                warehouse_full_column_id = self.warehouse_full_column_id,
+                pii_flag = self.pii_flag,
+                changed_time = self.changed_time
+            )
 
 class QueryInfo(db.Model):
     __tablename__ = "query_info"
