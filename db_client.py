@@ -56,7 +56,7 @@ class DbClient(object):
         return [
             {
                 'uuid': col.uuid,
-                'table_id': table_uuid,
+                'table_uuid': table_uuid,
                 'org_uuid': org_uuid,
                 'data_type': col.data_type,
                 'name': col.name,
