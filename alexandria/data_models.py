@@ -10,19 +10,18 @@ from sqlalchemy.ext.declarative import declarative_base
 
 db = SQLAlchemy()
 
-#######################################################
-# ORM Models:
-# (-> is one directional, <-> is bidrectional)
-#
-# One -> Many
-#   - Org       <-> TableInfo
-#   - TableInfo <-> ColumnInfo
-#   - QueryInfo <-> QueryTableInfo
-#
-# One -> One
-#   - QueryTableInfo <-> TableInfo
-#######################################################
-
+ #######################################################
+ # ORM Models:
+ # (-> is one directional, <-> is bidrectional)
+ #
+ # One -> Many
+ #   - Org       <-> TableInfo
+ #   - TableInfo <-> ColumnInfo
+ #   - QueryInfo <-> QueryTableInfo
+ #
+ # One -> One
+ #   - QueryTableInfo <-> TableInfo
+ #######################################################
 
 class Org(db.Model):
     __tablename__ = "org"
@@ -31,7 +30,7 @@ class Org(db.Model):
     uuid = Column(String, unique=True)
     name = Column(String)
 
-    tables = relationship("TableInfo", back_populates="orgs")
+    tables = relationship("TableInfo", back_populates="org")
 
     def __init__(self, name):
         self.name = name
@@ -41,11 +40,11 @@ class Org(db.Model):
 class TableInfo(db.Model):
     __tablename__ = "table_info"
 
-    id = Column(Integer, primary_key=True)
+    id = Column(Integer, primary_key = True)
     uuid = Column(String, unique=True)
 
     org_id = Column(Integer, ForeignKey("org.id"))
-    orgs = relationship("Org", back_populates="tables")
+    org = relationship("Org", back_populates="tables")
 
     column_infos = relationship("ColumnInfo", back_populates="table_info")
     query_table_info = relationship("QueryTableInfo", uselist=False, back_populates="table_info")
@@ -53,6 +52,7 @@ class TableInfo(db.Model):
     name = Column(String)
     description = Column(String)
     annotation = Column(String)
+
     pii_flag = Column(Boolean)
 
     warehouse = Column(String)
@@ -98,7 +98,6 @@ class ColumnInfo(db.Model):
         self.table_info = table_info
         self.org = table_info.org
         self.data_type = data_type
-<<<<<<< HEAD
         self.changed_time = datetime.datetime.now()
 
     def to_dict(self):
@@ -111,54 +110,41 @@ class ColumnInfo(db.Model):
             pii_flag = self.pii_flag,
             changed_time = self.changed_time
         )
-=======
-
-    def to_dict(self):
-            return dict(
-                name = self.name,
-                uuid = self.uuid,
-                data_type = self.data_type,
-                description = self.description,
-                warehouse_full_column_id = self.warehouse_full_column_id,
-                pii_flag = self.pii_flag,
-                changed_time = self.changed_time
-            )
 
 class QueryInfo(db.Model):
-    __tablename__ = "query_info"
+     __tablename__ = "query_info"
 
-    id = Column(Integer,
-                primary_key=True,
-                )
-    uuid = Column(String, unique=True)
+     id = Column(Integer,
+                 primary_key=True,
+                 )
+     uuid = Column(String, unique=True)
 
-    query_string = Column(String)
-    query_table_info = relationship("QueryTableInfo", back_populates="query_info")
+     query_string = Column(String)
+     query_table_info = relationship("QueryTableInfo", back_populates="query_info")
 
-    def __init__(self, org, query_string):
-        self.uuid = uuid.uuid4().__str__()
-        self.org = org
-        self.query_string = query_string
+     def __init__(self, org, query_string):
+         self.uuid = uuid.uuid4().__str__()
+         self.org = org
+         self.query_string = query_string
 
 
-class QueryTableInfo(db.Model):
-    __tablename__ = "query_table_info"
+ class QueryTableInfo(db.Model):
+     __tablename__ = "query_table_info"
 
-    id = Column(String,
-                primary_key=True,
-                )
-    uuid = Column(String, unique=True)
+     id = Column(String,
+                 primary_key=True,
+                 )
+     uuid = Column(String, unique=True)
 
-    table_info_id = Column(Integer, ForeignKey("table_info.id"))
-    table_info = relationship("TableInfo", back_populates="query_table_info")
+     table_info_id = Column(Integer, ForeignKey("table_info.id"))
+     table_info = relationship("TableInfo", back_populates="query_table_info")
 
-    query_id = Column(Integer, ForeignKey("query_info.id"))
-    query_info = relationship("QueryInfo", back_populates="query_table_info")
+     query_id = Column(Integer, ForeignKey("query_info.id"))
+     query_info = relationship("QueryInfo", back_populates="query_table_info")
 
-    pii_flag = Column(Boolean)
+     pii_flag = Column(Boolean)
 
-    def __init__(self, name, table_info):
-        self.uuid = uuid.uuid4().__str__()
-        self.table_info = table_info
-        self.query = query
->>>>>>> ad994a2 (revised models for the relationships mentioned)
+     def __init__(self, name, table_info):
+         self.uuid = uuid.uuid4().__str__()
+         self.table_info = table_info
+         self.query = query
