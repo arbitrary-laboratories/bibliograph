@@ -4,8 +4,9 @@ from alexandria.data_models import (
     Org,
     TableInfo,
     ColumnInfo,
-    db,
 )
+
+from flask_db import db
 
 from sqlalchemy import create_engine
 from sqlalchemy import insert, select, delete, inspect
@@ -103,3 +104,9 @@ class DbClient(object):
         db.session.commit()
 
         return column.to_dict()
+
+    def get_queries(self, query_id):
+        """ get the query string and pii_flag for a given query"""
+        q = db.session.query(QueryInfo).filter(QueryInfo.query_table_info.id==query_id)
+        query = q.first()
+        return query
