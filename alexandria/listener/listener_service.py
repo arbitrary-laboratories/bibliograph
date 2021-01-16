@@ -1,4 +1,5 @@
-import datetime
+from datetime import datetime
+from uuid import uuid4
 
 from sqlalchemy import create_engine
 from sqlalchemy import insert, select, delete, inspect
@@ -7,10 +8,7 @@ from sqlalchemy import MetaData
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql.expression import func
 
-from uuid import uuid4
-
 from alexandria.utils import get_bq_gateway, extract_tables
-
 from alexandria.data_models import (
     metadata,
     Org,
@@ -107,7 +105,7 @@ class ListenerService(object):
         for table in change_log['modify']:
             self.modify_ebdb(table)
 
-    def add_to_ebdb(add_table, org_id):
+    def add_to_ebdb(add_table, org):
         add_columns = []
         insert_table = TableInfo(
                     org = org,
@@ -143,26 +141,26 @@ class ListenerService(object):
         for table in tables:
             for column in table.column_infos:
                 # delete each column object
-                session.delete(column)
+                db.session.delete(column)
         # delete this query object
         table_del.delete()
         session.commit()
 
-    def modify_ebdb(self, modify_table):
-        update_table = db.session.query(TableInfo).filter_by(warehouse_full_table_id = modify_table['full_id'])
+    def modify_ebdb(modify_table):
+        update_table = session.query(TableInfo).filter_by(warehouse_full_table_id = modify_table['full_id'])
         update_table.name = modify_table['name']
         update_table.description = modify_table['description']
-        update_table.changed_time = datetime.datetime.utcnow()
-        update_table.version = (tables_table.c.version + 1)
+        update_table.changed_time = datetime.now()
+        update_table.version = (update_table.first().version + 1)
         update_table.is_latest = True
         update_columns = []
         for column in modify_table['schema']:
-            update_column = update_table.column_infos.filter_by(warehouse_full_column_id = column['warehouse_full_column_id'])
+            update_column = session.query(ColumnInfo).filter_by(warehouse_full_column_id = column['warehouse_full_column_id'])
             update_column.name = column['name'],
             update_column.description = column['description']
             update_column.data_type = column['field_type']
-            update_column.changed_time = datetime.datetime.utcnow()
-            update_column.version = (columns_table.c.version + 1)
+            update_column.changed_time = datetime.now()
+            update_column.version = (update_column.first().version + 1)
             update_column.is_latest = True
             update_columns.append(update_column)
         update_table.column_infos = update_columns
