@@ -7,10 +7,20 @@ from exabyte.models.database import init_db
 from exabyte.models.main import db
 
 
-app = Flask(__name__)
-app.config.from_object(settings)
-db.init_app(app)
-init_db()
+def create_app(config=settings):
+    app = Flask(__name__)
+    app.config.from_object(config)
+    init_db()
+
+    db.init_app(app)
+
+    # TODO: blueprint style view initialization
+    #init_views(app)
+
+    return app
+
+# TODO: wrap in manager function
+app = create_app()
 
 # Temporary
 CORS(app)
