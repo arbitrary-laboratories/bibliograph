@@ -2,3 +2,4 @@ dev-env
 .DS_Store
 *.pyc
 *.db
+*.egg-info
