@@ -1,19 +1,19 @@
 from datetime import datetime
 
-from alexandria.data_models import (
+from exabyte.alexandria.data_models import (
     Org,
     TableInfo,
     ColumnInfo,
 )
 
-from flask_db import db
+from exabyte.flask_db import db
 
 from sqlalchemy import create_engine
 from sqlalchemy import insert, select, delete, inspect
 from sqlalchemy import Column, DateTime, Integer, String, Boolean
 from sqlalchemy import MetaData
 
-from alexandria.utils import get_bq_gateway
+from exabyte.alexandria.utils import get_bq_gateway
 
 
 class DbClient(object):

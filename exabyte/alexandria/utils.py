@@ -4,7 +4,7 @@ import sqlparse
 from sqlparse.sql import IdentifierList, Identifier
 from sqlparse.tokens import Keyword, DML
 
-from alexandria.bq_gateway import BigQueryGateway
+from exabyte.alexandria.bq_gateway import BigQueryGateway
 
 def get_bq_gateway():
     return BigQueryGateway()

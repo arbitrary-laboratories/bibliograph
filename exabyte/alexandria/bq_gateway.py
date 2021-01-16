@@ -1,5 +1,5 @@
 from google.cloud import bigquery
-from alexandria.schema_obj import SchemaObject
+from exabyte.alexandria.schema_obj import SchemaObject
 import os
 import pickle as pkl
 import json
