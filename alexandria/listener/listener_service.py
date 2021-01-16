@@ -1,18 +1,23 @@
 import datetime
+
 from sqlalchemy import create_engine
 from sqlalchemy import insert, select, delete, inspect
 from sqlalchemy import Column, DateTime, Integer, String, Boolean
 from sqlalchemy import MetaData
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.sql.expression import func
+
 from uuid import uuid4
 
 from alexandria.utils import get_bq_gateway, extract_tables
 
 from alexandria.data_models import (
+    metadata,
     Org,
     TableInfo,
     ColumnInfo,
-    db,
+    QueryInfo,
+    QueryTableInfo,
 )
 
 
@@ -22,10 +27,6 @@ class ListenerService(object):
         self.db_path = db_path
         self.gateway = get_bq_gateway() #datawarehouse_map[warehouse_type]()
         self.engine = create_engine('sqlite:///{path}/exabyte.db'.format(path=self.db_path), echo=True)
-        self.meta = MetaData(self.engine)
-        self.meta.reflect()
-        self.max_table_id = db.session.query(func.max(TableInfo.id).label("max_id")).one().max_id
-        self.max_column_id = db.session.query(func.max(TableInfo.id).label("max_id")).one().max_id
 
     def pull_metadata_from_ebdb(self, org_id):
         metadata_model = []
@@ -96,49 +97,43 @@ class ListenerService(object):
         return table_changes
 
 
-    def enforce_changes(self, change_log):
+    def enforce_changes(self, change_log, org_obj):
+        # change_log is the result of the compare metadata function
+        # org_obj is of type <alexandria.data_models.Org>
         for table in change_log['add']:
-            self.add_to_ebdb(table, org_id)
+            self.add_to_ebdb(table, org_obj)
         for table in change_log['remove']:
-            self.remove_from_ebdb(table, org_id)
+            self.remove_from_ebdb(table, org_obj)
         for table in change_log['modify']:
             self.modify_ebdb(table)
 
     def add_to_ebdb(add_table, org_id):
-        add_table_id = str(uuid4())
         add_columns = []
+        insert_table = TableInfo(
+                    org = org,
+                    name = add_table['name'],
+                    description= add_table['description'],
+                    annotation = None,
+                    pii_flag = False,
+                    warehouse= 'bq',
+                    warehouse_full_table_id = add_table['full_id'],
+                    version= 0,
+                    is_latest= True,
+                )
         for column in add_table['schema']:
-            add_column_id = str(uuid4())
             insert_column = ColumnInfo(
-                              id = (self.max_column_id + 1),
-                              uuid = add_column_id,
-                              table_info_id = (self.max_table_id + 1),
-                              org_id = org_id,
+                              table_info = insert_table,
                               data_type = column['field_type'],
                               name = column['name'],
                               description = column['description'],
+                              annotation = None,
                               pii_flag = False,
                               warehouse_full_column_id = '{0}.{1}'.format(add_table['full_id'], column['name']),
-                              changed_time = None,
                               version = 0,
                               is_latest = True,
                             )
             add_columns.append(insert_column)
-            self.max_column_id += 1
-        insert_table = TableInfo(
-                        table_id = add_table_id,
-                        org_id = org_id,
-                        name = add_table['name'],
-                        description= add['description'],
-                        pii_flag = False,
-                        warehouse= self.datawarehouse_type,
-                        warehouse_full_table_id = add_table['full_id'],
-                        changed_time= None,
-                        version= 0,
-                        is_latest= True,
-                        column_infos= add_columns,
-                    )
-        self.max_table_id += 1
+        insert_table.column_infos = add_columns
         db.session.add(insert_table)
         db.session.commit()
 

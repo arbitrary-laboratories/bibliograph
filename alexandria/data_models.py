@@ -65,11 +65,23 @@ class TableInfo(Base):
     is_latest = Column(Boolean)
     pii_column_count = Column(Integer, default=0)
 
-    def __init__(self, name, org):
-        self.name = name
+    def __init__(self, org, name, description, annotation, pii_flag, warehouse,
+                 warehouse_full_table_id, version, is_latest, column_infos=[],
+                 query_table_info=None,
+                 ):
         self.uuid = uuid.uuid4().__str__()
         self.org = org
-        self.changed_time = datetime.datetime.now()
+        self.name = name
+        self.description = description
+        self.annotation = annotation
+        self.pii_flag = pii_flag
+        self.warehouse = warehouse
+        self.warehouse_full_table_id = warehouse_full_table_id
+        self.is_latest = True
+        self.column_infos = column_infos
+        self.query_table_info = None
+        self.version = version
+        self.changed_time = datetime.now()
 
 
 class ColumnInfo(Base):
@@ -95,13 +107,21 @@ class ColumnInfo(Base):
     version = Column(Integer)
     is_latest = Column(Boolean)
 
-    def __init__(self, name, table_info, data_type):
+    def __init__(self, name, data_type, description, annotation, pii_flag,
+                 warehouse_full_column_id, version, is_latest=False,
+                 table_info=None):
         self.name = name
         self.uuid = uuid.uuid4().__str__()
         self.table_info = table_info
         self.org = table_info.org
         self.data_type = data_type
-        self.changed_time = datetime.datetime.now()
+        self.description = description
+        self.annotation = annotation
+        self.pii_flag = pii_flag
+        self.warehouse_full_column_id = warehouse_full_column_id
+        self.version = version
+        self.is_latest = is_latest
+        self.changed_time = datetime.now()
 
     def to_dict(self):
         return dict(
