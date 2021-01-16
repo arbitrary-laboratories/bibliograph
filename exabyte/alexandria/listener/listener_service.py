@@ -1,18 +1,21 @@
-import datetime
+from datetime import datetime
+from uuid import uuid4
+
 from sqlalchemy import create_engine
 from sqlalchemy import insert, select, delete, inspect
 from sqlalchemy import Column, DateTime, Integer, String, Boolean
 from sqlalchemy import MetaData
 from sqlalchemy.ext.declarative import declarative_base
-from uuid import uuid4
+from sqlalchemy.sql.expression import func
 
 from alexandria.utils import get_bq_gateway, extract_tables
-
 from alexandria.data_models import (
+    metadata,
     Org,
     TableInfo,
     ColumnInfo,
-    db,
+    QueryInfo,
+    QueryTableInfo,
 )
 
 
@@ -22,10 +25,6 @@ class ListenerService(object):
         self.db_path = db_path
         self.gateway = get_bq_gateway() #datawarehouse_map[warehouse_type]()
         self.engine = create_engine('sqlite:///{path}/exabyte.db'.format(path=self.db_path), echo=True)
-        self.meta = MetaData(self.engine)
-        self.meta.reflect()
-        self.max_table_id = db.session.query(func.max(TableInfo.id).label("max_id")).one().max_id
-        self.max_column_id = db.session.query(func.max(TableInfo.id).label("max_id")).one().max_id
 
     def pull_metadata_from_ebdb(self, org_id):
         metadata_model = []
@@ -96,73 +95,72 @@ class ListenerService(object):
         return table_changes
 
 
-    def enforce_changes(self, change_log):
+    def enforce_changes(self, change_log, org_obj):
+        # change_log is the result of the compare metadata function
+        # org_obj is of type <alexandria.data_models.Org>
         for table in change_log['add']:
-            self.add_to_ebdb(table, org_id)
+            self.add_to_ebdb(table, org_obj)
         for table in change_log['remove']:
-            self.remove_from_ebdb(table, org_id)
+            self.remove_from_ebdb(table)
         for table in change_log['modify']:
             self.modify_ebdb(table)
 
-    def add_to_ebdb(add_table, org_id):
-        add_table_id = str(uuid4())
+    def add_to_ebdb(add_table, org):
         add_columns = []
+        insert_table = TableInfo(
+                    org = org,
+                    name = add_table['name'],
+                    description= add_table['description'],
+                    annotation = None,
+                    pii_flag = False,
+                    warehouse= 'bq',
+                    warehouse_full_table_id = add_table['full_id'],
+                    version= 0,
+                    is_latest= True,
+                )
         for column in add_table['schema']:
-            add_column_id = str(uuid4())
             insert_column = ColumnInfo(
-                              id = (self.max_column_id + 1),
-                              uuid = add_column_id,
-                              table_info_id = (self.max_table_id + 1),
-                              org_id = org_id,
+                              table_info = insert_table,
                               data_type = column['field_type'],
                               name = column['name'],
                               description = column['description'],
+                              annotation = None,
                               pii_flag = False,
                               warehouse_full_column_id = '{0}.{1}'.format(add_table['full_id'], column['name']),
-                              changed_time = None,
                               version = 0,
                               is_latest = True,
                             )
             add_columns.append(insert_column)
-            self.max_column_id += 1
-        insert_table = TableInfo(
-                        table_id = add_table_id,
-                        org_id = org_id,
-                        name = add_table['name'],
-                        description= add['description'],
-                        pii_flag = False,
-                        warehouse= self.datawarehouse_type,
-                        warehouse_full_table_id = add_table['full_id'],
-                        changed_time= None,
-                        version= 0,
-                        is_latest= True,
-                        column_infos= add_columns,
-                    )
-        self.max_table_id += 1
+        insert_table.column_infos = add_columns
         db.session.add(insert_table)
         db.session.commit()
 
     def remove_from_ebdb(remove_table):
-        table_del = db.session.query(TableInfo).filter(TableInfo.warehouse_full_table_id == remove_table['warehouse_full_table_id'])
-        table_del.column_infos.delete()
+        table_del = session.query(TableInfo).filter(TableInfo.warehouse_full_table_id == remove_table['warehouse_full_table_id'])
+        tables = table_del.all()
+        for table in tables:
+            for column in table.column_infos:
+                # delete each column object
+                db.session.delete(column)
+        # delete this query object
         table_del.delete()
-        db.session.commit()
+        session.commit()
 
-    def modify_ebdb(self, modify_table):
-        update_table = db.session.query(TableInfo).filter_by(warehouse_full_table_id = modify_table['full_id'])
+    def modify_ebdb(modify_table):
+        update_table = session.query(TableInfo).filter_by(warehouse_full_table_id = modify_table['full_id'])
         update_table.name = modify_table['name']
         update_table.description = modify_table['description']
-        update_table.changed_time = datetime.datetime.utcnow()
-        update_table.version = (tables_table.c.version + 1)
+        update_table.changed_time = datetime.now()
+        update_table.version = (update_table.first().version + 1)
         update_table.is_latest = True
         update_columns = []
         for column in modify_table['schema']:
-            update_column = update_table.column_infos.filter_by(warehouse_full_column_id = column['warehouse_full_column_id'])
+            update_column = session.query(ColumnInfo).filter_by(warehouse_full_column_id = column['warehouse_full_column_id'])
             update_column.name = column['name'],
             update_column.description = column['description']
             update_column.data_type = column['field_type']
-            update_column.changed_time = datetime.datetime.utcnow()
-            update_column.version = (columns_table.c.version + 1)
+            update_column.changed_time = datetime.now()
+            update_column.version = (update_column.first().version + 1)
             update_column.is_latest = True
             update_columns.append(update_column)
         update_table.column_infos = update_columns
@@ -173,20 +171,15 @@ class ListenerService(object):
         queries = [i[1] for i in jobs if i[0] == 'query']
         for query in queries:
             mentioned_tables = extract_tables(query)
-            query_uuid = str(uuid4())
-            insert_query_info = QueryInfo(
-                                    uuid = query_uuid,
-                                    query_string = query,
-            )
+            insert_query_info = QueryInfo(query_string = query)
             query_table_infos = []
             for table in mentioned_tables:
-                query_table_uuid = str(uuid4())
                 try:
                     extracted_table_name = get_extracted_table_name(table)
-                    table_obj = db.session.query(TableInfo).filter(TableInfo.warehouse_full_table_id == extracted_table_name)
+                    table_obj = db.session.query(TableInfo).filter(TableInfo.warehouse_full_table_id == extracted_table_name).first()
                     insert_query_table_info = QueryTableInfo(
-                                                  uuid = query_table_uuid,
                                                   table_info = table_obj,
+                                                  query_info = insert_query_info,
                                                   pii_flag = table_obj.pii_flag,
                                                   )
 
@@ -195,6 +188,7 @@ class ListenerService(object):
                     # not correct format TODO -- make this broader
                     continue
             insert_query_info.query_table_info = query_table_infos
+            db.session.add(insert_query_info)
             db.session.commit()
 
 

@@ -29,7 +29,7 @@ Base = declarative_base(metadata=metadata)
 class Org(Base):
     __tablename__ = "org"
 
-    id = Column(Integer, primary_key = True)
+    id = Column(Integer, primary_key = True, autoincrement=True)
     uuid = Column(String, unique=True)
     name = Column(String)
 
@@ -43,7 +43,7 @@ class Org(Base):
 class TableInfo(Base):
     __tablename__ = "table_info"
 
-    id = Column(Integer, primary_key = True)
+    id = Column(Integer, primary_key = True, autoincrement=True)
     uuid = Column(String, unique=True)
 
     org_id = Column(Integer, ForeignKey("org.id"))
@@ -65,17 +65,29 @@ class TableInfo(Base):
     is_latest = Column(Boolean)
     pii_column_count = Column(Integer, default=0)
 
-    def __init__(self, name, org):
-        self.name = name
+    def __init__(self, org, name, warehouse_full_table_id, description=None,
+                 annotation=None, pii_flag=False, warehouse=None, version=0,
+                 is_latest=True, column_infos=[], query_table_info=None,
+                 ):
         self.uuid = uuid.uuid4().__str__()
         self.org = org
-        self.changed_time = datetime.datetime.now()
+        self.name = name
+        self.description = description
+        self.annotation = annotation
+        self.pii_flag = pii_flag
+        self.warehouse = warehouse
+        self.warehouse_full_table_id = warehouse_full_table_id
+        self.is_latest = True
+        self.column_infos = column_infos
+        self.query_table_info = None
+        self.version = version
+        self.changed_time = datetime.now()
 
 
 class ColumnInfo(Base):
     __tablename__ = "column_info"
 
-    id = Column(Integer, primary_key = True)
+    id = Column(Integer, primary_key = True, autoincrement=True)
     uuid = Column(String, unique=True)
 
     table_info_id = Column(Integer, ForeignKey("table_info.id"))
@@ -95,13 +107,21 @@ class ColumnInfo(Base):
     version = Column(Integer)
     is_latest = Column(Boolean)
 
-    def __init__(self, name, table_info, data_type):
+    def __init__(self, name, data_type, warehouse_full_column_id,
+                 description=None, annotation=None, pii_flag=False, version=0,
+                 is_latest=False, table_info=None):
         self.name = name
         self.uuid = uuid.uuid4().__str__()
         self.table_info = table_info
         self.org = table_info.org
         self.data_type = data_type
-        self.changed_time = datetime.datetime.now()
+        self.description = description
+        self.annotation = annotation
+        self.pii_flag = pii_flag
+        self.warehouse_full_column_id = warehouse_full_column_id
+        self.version = version
+        self.is_latest = is_latest
+        self.changed_time = datetime.now()
 
     def to_dict(self):
         return dict(
@@ -117,37 +137,33 @@ class ColumnInfo(Base):
 class QueryInfo(Base):
     __tablename__ = "query_info"
 
-    id = Column(Integer,
-         primary_key=True,
-         )
+    id = Column(Integer, primary_key=True, autoincrement=True)
     uuid = Column(String, unique=True)
 
     query_string = Column(String)
-    query_table_info = relationship("QueryTableInfo", back_populates="query_info")
+    query_table_infos = relationship("QueryTableInfo", back_populates="query_info")
 
-    def __init__(self, org, query_string):
+    def __init__(self, query_string):
         self.uuid = uuid.uuid4().__str__()
-        self.org = org
         self.query_string = query_string
 
 
 class QueryTableInfo(Base):
     __tablename__ = "query_table_info"
 
-    id = Column(String,
-             primary_key=True,
-             )
+    id = Column(Integer, primary_key=True, autoincrement=True)
     uuid = Column(String, unique=True)
 
     table_info_id = Column(Integer, ForeignKey("table_info.id"))
     table_info = relationship("TableInfo", back_populates="query_table_info")
 
     query_id = Column(Integer, ForeignKey("query_info.id"))
-    query_info = relationship("QueryInfo", back_populates="query_table_info")
+    query_info = relationship("QueryInfo", back_populates="query_table_infos")
 
     pii_flag = Column(Boolean)
 
-    def __init__(self, name, table_info):
+    def __init__(self, table_info, query_info, pii_flag=False):
         self.uuid = uuid.uuid4().__str__()
         self.table_info = table_info
-        self.query = query
+        self.query_info = query_info
+        self.pii_flag = pii_flag
