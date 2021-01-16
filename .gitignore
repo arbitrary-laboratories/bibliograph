@@ -1,3 +1,5 @@
 dev-env
-*.pyc
 .DS_Store
+exabyte.egg.info
+*.pyc
+*.db
