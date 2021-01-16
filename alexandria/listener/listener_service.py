@@ -103,7 +103,7 @@ class ListenerService(object):
         for table in change_log['add']:
             self.add_to_ebdb(table, org_obj)
         for table in change_log['remove']:
-            self.remove_from_ebdb(table, org_obj)
+            self.remove_from_ebdb(table)
         for table in change_log['modify']:
             self.modify_ebdb(table)
 
@@ -138,10 +138,15 @@ class ListenerService(object):
         db.session.commit()
 
     def remove_from_ebdb(remove_table):
-        table_del = db.session.query(TableInfo).filter(TableInfo.warehouse_full_table_id == remove_table['warehouse_full_table_id'])
-        table_del.column_infos.delete()
+        table_del = session.query(TableInfo).filter(TableInfo.warehouse_full_table_id == remove_table['warehouse_full_table_id'])
+        tables = table_del.all()
+        for table in tables:
+            for column in table.column_infos:
+                # delete each column object
+                session.delete(column)
+        # delete this query object
         table_del.delete()
-        db.session.commit()
+        session.commit()
 
     def modify_ebdb(self, modify_table):
         update_table = db.session.query(TableInfo).filter_by(warehouse_full_table_id = modify_table['full_id'])
