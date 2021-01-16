@@ -1,14 +1,16 @@
-import exabyte.settings
+from exabyte import settings
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from .flask_db import db
 from .db_client import DbClient
+from exabyte.models.database import init_db
+from exabyte.models.main import db
 
 
 app = Flask(__name__)
 app.config.from_object(settings)
 db.init_app(app)
+init_db()
 
 # Temporary
 CORS(app)
