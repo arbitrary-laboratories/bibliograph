@@ -83,7 +83,6 @@ class BigQueryGateway(object):
                                  min_creation_time,
                                  max_creation_time):
         current_page = self.client.list_jobs(all_users=True,
-                                             page_token=page_token,
                                              min_creation_time=min_creation_time,
                                              max_creation_time=max_creation_time)
         accumulated_jobs = self.get_page_jobs(current_page)
@@ -95,10 +94,10 @@ class BigQueryGateway(object):
             next_page_resources = self.get_page_jobs(next_page)
             accumulated_jobs.extend(next_page_resources)
             current_page = next_page
-        return accumulated_jobs
+        return [self.process_job(job) for job  in accumulated_jobs]
 
     def get_page_jobs(self, page):
-        return list(current_page)
+        return list(page)
 
     def process_job(self, job_obj):
         if job_obj.job_type == 'load':

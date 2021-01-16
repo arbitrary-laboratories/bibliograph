@@ -171,20 +171,15 @@ class ListenerService(object):
         queries = [i[1] for i in jobs if i[0] == 'query']
         for query in queries:
             mentioned_tables = extract_tables(query)
-            query_uuid = str(uuid4())
-            insert_query_info = QueryInfo(
-                                    uuid = query_uuid,
-                                    query_string = query,
-            )
+            insert_query_info = QueryInfo(query_string = query)
             query_table_infos = []
             for table in mentioned_tables:
-                query_table_uuid = str(uuid4())
                 try:
                     extracted_table_name = get_extracted_table_name(table)
-                    table_obj = db.session.query(TableInfo).filter(TableInfo.warehouse_full_table_id == extracted_table_name)
+                    table_obj = db.session.query(TableInfo).filter(TableInfo.warehouse_full_table_id == extracted_table_name).first()
                     insert_query_table_info = QueryTableInfo(
-                                                  uuid = query_table_uuid,
                                                   table_info = table_obj,
+                                                  query_info = insert_query_info,
                                                   pii_flag = table_obj.pii_flag,
                                                   )
 
@@ -193,6 +188,7 @@ class ListenerService(object):
                     # not correct format TODO -- make this broader
                     continue
             insert_query_info.query_table_info = query_table_infos
+            db.session.add(insert_query_info)
             db.session.commit()
 
 
