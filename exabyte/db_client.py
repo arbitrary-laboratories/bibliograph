@@ -1,12 +1,11 @@
 from datetime import datetime
 
-from exabyte.alexandria.data_models import (
+from exabyte.models.main import (
     Org,
     TableInfo,
     ColumnInfo,
+    db
 )
-
-from exabyte.flask_db import db
 
 from sqlalchemy import create_engine
 from sqlalchemy import insert, select, delete, inspect

@@ -9,7 +9,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql.expression import func
 
 from alexandria.utils import get_bq_gateway, extract_tables
-from alexandria.data_models import (
+from exabyte.models.main import (
     metadata,
     Org,
     TableInfo,

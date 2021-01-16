@@ -1,3 +1,5 @@
+# TODO (@chilldude) split up models and inherit from same base
+
 import uuid
 
 from datetime import datetime
@@ -167,3 +169,6 @@ class QueryTableInfo(Base):
         self.table_info = table_info
         self.query_info = query_info
         self.pii_flag = pii_flag
+
+
+db = SQLAlchemy(metadata=metadata)
