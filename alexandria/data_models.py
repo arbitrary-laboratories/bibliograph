@@ -65,9 +65,9 @@ class TableInfo(Base):
     is_latest = Column(Boolean)
     pii_column_count = Column(Integer, default=0)
 
-    def __init__(self, org, name, description, annotation, pii_flag, warehouse,
-                 warehouse_full_table_id, version, is_latest, column_infos=[],
-                 query_table_info=None,
+    def __init__(self, org, name, warehouse_full_table_id, description=None,
+                 annotation=None, pii_flag=False, warehouse=None, version=0,
+                 is_latest=True, column_infos=[], query_table_info=None,
                  ):
         self.uuid = uuid.uuid4().__str__()
         self.org = org
@@ -107,9 +107,9 @@ class ColumnInfo(Base):
     version = Column(Integer)
     is_latest = Column(Boolean)
 
-    def __init__(self, name, data_type, description, annotation, pii_flag,
-                 warehouse_full_column_id, version, is_latest=False,
-                 table_info=None):
+    def __init__(self, name, data_type, warehouse_full_column_id,
+                 description=None, annotation=None, pii_flag=False, version=0,
+                 is_latest=False, table_info=None):
         self.name = name
         self.uuid = uuid.uuid4().__str__()
         self.table_info = table_info
@@ -162,7 +162,7 @@ class QueryTableInfo(Base):
 
     pii_flag = Column(Boolean)
 
-    def __init__(self, table_info, query_info, pii_flag):
+    def __init__(self, table_info, query_info, pii_flag=False):
         self.uuid = uuid.uuid4().__str__()
         self.table_info = table_info
         self.query_info = query_info
