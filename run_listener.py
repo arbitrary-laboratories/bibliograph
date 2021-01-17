@@ -1,3 +1,4 @@
+import argparse
 import time
 import schedule
 from datetime import datetime, timedelta
@@ -15,21 +16,29 @@ def run(service,  org_id, start_time=None, end_time=None, queries=False):
                                              end_time)
         print('{} queries added'.format(num_queries))
 
-def update_job():
-    start_time = datetime.utcnow() - timedelta(minutes=1)
+def update_job(org_id, run_interval):
+    start_time = datetime.utcnow() - timedelta(minutes=run_interval)
     end_time = datetime.utcnow()
     run(listener,
-        org_id = 1,
+        org_id = org_id,
         start_time= start_time,
         end_time= end_time,
         queries=True)
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('org_id')
+    parser.add_argument('--run_interval', default=1)
+    parser.add_argument('--init', action='store_true', default=False)
+    args = parser.parse_args()
+
     listener = ListenerService(db_path="path here",
-                                org_id=1)
-    run(listener, org_id=1)
-    init_queries = listener.update_queries(datetime(2020, 12, 1), datetime.now())
-    schedule.every(1).minutes.do(update_job)
+                                org_id=args.org_id)
+    if args.init:
+        run(listener, org_id=args.org_id)
+        init_queries = listener.update_queries(datetime(2020, 12, 1), datetime.now())
+    print('doing')
+    schedule.every(args.run_interval).minutes.do(lambda: update_job(args.org_id, args.run_interval))
     while True:
         schedule.run_pending()
         time.sleep(1)
