@@ -1,12 +1,11 @@
 from google.cloud import bigquery
-from exabyte.alexandria.schema_obj import SchemaObject
 import os
 import pickle as pkl
 import json
 
 class BigQueryGateway(object):
     def __init__(self):
-        self.client = bigquery.Client.from_service_account_json("path/to/key.json")
+        self.client = bigquery.Client()#.from_service_account_json("path/to/key.json")
 
     def get_projects(self):
         # returns list of projects associated with the service account scope
@@ -52,26 +51,6 @@ class BigQueryGateway(object):
         schema = self.create_schema_object_from_json(schema_struct)
         table.schema = schema
         self.client.update_table(table, ['description', 'schema'])
-
-    def update_local_table_schema(self,
-                                  save_path,
-                                  project,
-                                  dataset,
-                                  table_name,
-                                  table_description,
-                                  schema_struct):
-        # full_table_location: str, project.dataset.table
-        # table_description: str, table description to add
-        # schema_struct: list of dicts, representing a valid schema that matches
-        # the schema of full_table_location with descriptions to add to each
-        # column
-        save_path += '{0}_{1}_{2}_schema.pkl'.format(project,
-                                                     dataset,
-                                                     table_name)
-        save_schema = SchemaObject(table_description,
-                                   json.loads(schema_struct))
-        with open(save_path, 'wb') as f:
-            pkl.dump(save_schema, f)
 
     def get_last_jobs(self,
                         min_creation_time,

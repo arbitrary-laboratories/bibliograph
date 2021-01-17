@@ -1,4 +1,5 @@
 from datetime import datetime
+import json
 from uuid import uuid4
 
 from sqlalchemy import create_engine
@@ -6,9 +7,10 @@ from sqlalchemy import insert, select, delete, inspect
 from sqlalchemy import Column, DateTime, Integer, String, Boolean
 from sqlalchemy import MetaData
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import Session
 from sqlalchemy.sql.expression import func
 
-from alexandria.utils import get_bq_gateway, extract_tables
+from exabyte.alexandria.utils import get_bq_gateway, extract_tables
 from exabyte.models.main import (
     metadata,
     Org,
@@ -21,14 +23,14 @@ from exabyte.models.main import (
 
 class ListenerService(object):
     def __init__(self, db_path, org_id):
-        self.interval = 5 # how often, in minutes to poll the dw
         self.db_path = db_path
         self.gateway = get_bq_gateway() #datawarehouse_map[warehouse_type]()
-        self.engine = create_engine('sqlite:///{path}/exabyte.db'.format(path=self.db_path), echo=True)
+        self.engine = create_engine('sqlite:///{path}'.format(path=self.db_path), echo=True)
+        self.session = Session(self.engine)
 
     def pull_metadata_from_ebdb(self, org_id):
         metadata_model = []
-        tables = db.session.query(TableInfo).filter(TableInfo.org_id == org_id)
+        tables = self.session.query(TableInfo).filter(TableInfo.org_id == org_id)
         for table_obj in tables.all():
             columns = table_obj.column_infos
             cs = []
@@ -67,7 +69,7 @@ class ListenerService(object):
 
         #scenario where there are no changes to enforce
         if db_tables_all == dw_tables_all:
-            return None
+            return table_changes
 
         # scenario where an entirely new table has been added to the dw
         db_tables = set([table['full_id'] for table in db_metadata])
@@ -95,17 +97,17 @@ class ListenerService(object):
         return table_changes
 
 
-    def enforce_changes(self, change_log, org_obj):
+    def enforce_changes(self, change_log, org_id):
         # change_log is the result of the compare metadata function
-        # org_obj is of type <alexandria.data_models.Org>
         for table in change_log['add']:
-            self.add_to_ebdb(table, org_obj)
+            self.add_to_ebdb(table, org_id)
         for table in change_log['remove']:
             self.remove_from_ebdb(table)
         for table in change_log['modify']:
             self.modify_ebdb(table)
 
-    def add_to_ebdb(add_table, org):
+    def add_to_ebdb(self, add_table, org_id):
+        org = self.session.query(Org).filter_by(id=org_id).first()
         add_columns = []
         insert_table = TableInfo(
                     org = org,
@@ -132,22 +134,22 @@ class ListenerService(object):
                             )
             add_columns.append(insert_column)
         insert_table.column_infos = add_columns
-        db.session.add(insert_table)
-        db.session.commit()
+        self.session.add(insert_table)
+        self.session.commit()
 
-    def remove_from_ebdb(remove_table):
-        table_del = session.query(TableInfo).filter(TableInfo.warehouse_full_table_id == remove_table['warehouse_full_table_id'])
+    def remove_from_ebdb(self, remove_table):
+        table_del = self.session.query(TableInfo).filter(TableInfo.warehouse_full_table_id == remove_table['warehouse_full_table_id'])
         tables = table_del.all()
         for table in tables:
             for column in table.column_infos:
                 # delete each column object
-                db.session.delete(column)
+                self.session.delete(column)
         # delete this query object
         table_del.delete()
-        session.commit()
+        self.session.commit()
 
-    def modify_ebdb(modify_table):
-        update_table = session.query(TableInfo).filter_by(warehouse_full_table_id = modify_table['full_id'])
+    def modify_ebdb(self, modify_table):
+        update_table = self.session.query(TableInfo).filter_by(warehouse_full_table_id = modify_table['full_id'])
         update_table.name = modify_table['name']
         update_table.description = modify_table['description']
         update_table.changed_time = datetime.now()
@@ -155,7 +157,7 @@ class ListenerService(object):
         update_table.is_latest = True
         update_columns = []
         for column in modify_table['schema']:
-            update_column = session.query(ColumnInfo).filter_by(warehouse_full_column_id = column['warehouse_full_column_id'])
+            update_column = self.session.query(ColumnInfo).filter_by(warehouse_full_column_id = column['warehouse_full_column_id'])
             update_column.name = column['name'],
             update_column.description = column['description']
             update_column.data_type = column['field_type']
@@ -164,7 +166,7 @@ class ListenerService(object):
             update_column.is_latest = True
             update_columns.append(update_column)
         update_table.column_infos = update_columns
-        db.session.commit()
+        self.session.commit()
 
     def update_queries(self, min_creation_time, max_creation_time):
         jobs = self.gateway.paginated_call_list_jobs(min_creation_time, max_creation_time)
@@ -175,8 +177,8 @@ class ListenerService(object):
             query_table_infos = []
             for table in mentioned_tables:
                 try:
-                    extracted_table_name = get_extracted_table_name(table)
-                    table_obj = db.session.query(TableInfo).filter(TableInfo.warehouse_full_table_id == extracted_table_name).first()
+                    extracted_table_name = self.get_extracted_table_name(table)
+                    table_obj = self.session.query(TableInfo).filter(TableInfo.warehouse_full_table_id == extracted_table_name).first()
                     insert_query_table_info = QueryTableInfo(
                                                   table_info = table_obj,
                                                   query_info = insert_query_info,
@@ -188,21 +190,12 @@ class ListenerService(object):
                     # not correct format TODO -- make this broader
                     continue
             insert_query_info.query_table_info = query_table_infos
-            db.session.add(insert_query_info)
-            db.session.commit()
+            self.session.add(insert_query_info)
+            self.session.commit()
+        return len(queries)
 
 
     def get_extracted_table_name(self, full_table_id):
         full_table_id = full_table_id.replace('`', '')
         project, dataset, table = full_table_id.split('.')
         return '{0}:{1}.{2}'.format(project, dataset, table)
-
-
-    def execute_db_action(self, target_table, query, is_select=False):
-        conn = self.engine.connect()
-        table = self.meta.tables[target_table]
-        res = conn.execute(query)
-        if is_select:
-            return [i for i in res]
-            conn.close()
-        conn.close()
