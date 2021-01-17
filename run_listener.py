@@ -25,7 +25,7 @@ def update_job():
         queries=True)
 
 if __name__ == "__main__":
-    listener = ListenerService(db_path="/Users/girish/bibliograph/exabyte_test.db",
+    listener = ListenerService(db_path="path here",
                                 org_id=1)
     run(listener, org_id=1)
     init_queries = listener.update_queries(datetime(2020, 12, 1), datetime.now())
