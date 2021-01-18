@@ -8,7 +8,7 @@ from flask_sqlalchemy import SQLAlchemy
 
 from sqlalchemy import MetaData
 from sqlalchemy import Column, DateTime, Integer, String, Boolean, ForeignKey
-from sqlalchemy.orm import relationship, backref
+from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 
 
@@ -28,8 +28,8 @@ Base = declarative_base(metadata=metadata)
  #   - QueryTableInfo <-> TableInfo
  #
  # Many -> Many
- #   - ColumnInfo <-> ColumnTagInfo (via ColumnTagAssociation)
- #   - TableInfo <-> TableTagInfo (via TableTagAssociation)
+ #   - ColumnInfo <-> TagInfo (via ColumnTagAssociation)
+ #   - TableInfo <-> TagInfo (via TableTagAssociation)
  #######################################################
 
 class Org(Base):
@@ -58,7 +58,7 @@ class TableInfo(Base):
     column_infos = relationship("ColumnInfo", back_populates="table_info")
     query_table_info = relationship("QueryTableInfo", uselist=False, back_populates="table_info")
 
-    table_tag_infos = relationship("TableTagAssociation",  back_populates="table_info")
+    tag_infos = relationship("TableTagAssociation",  back_populates="table_info")
 
     name = Column(String)
     description = Column(String)
@@ -106,7 +106,7 @@ class ColumnInfo(Base):
     org_id = Column(String, ForeignKey("org.id"))
     org = relationship("Org")
 
-    column_tag_infos = relationship("ColumnTagAssociation",  back_populates="column_info")
+    tag_infos = relationship("ColumnTagAssociation",  back_populates="column_info")
 
     data_type = Column(String)
     name = Column(String)
@@ -181,14 +181,15 @@ class QueryTableInfo(Base):
         self.query_info = query_info
         self.pii_flag = pii_flag
 
-class TableTagInfo(Base):
-    __tablename__ = "table_tag_info"
+class TagInfo(Base):
+    __tablename__ = "tag_info"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     uuid = Column(String, unique=True)
     name = Column(String)
 
-    table_infos = relationship("TableTagAssociation", back_populates="table_tag_info")
+    table_infos = relationship("TableTagAssociation", back_populates="tag_info")
+    column_infos = relationship("ColumnTagAssociation", back_populates="tag_info")
 
     def __init__(self, name, table_infos=None):
         self.uuid = uuid.uuid4().__str__()
@@ -198,38 +199,24 @@ class TableTagInfo(Base):
 class TableTagAssociation(Base):
     __tablename__ = "table_tag_association"
 
-    tag_id = Column(Integer, ForeignKey("table_tag_info.id"), primary_key=True)
+    tag_id = Column(Integer, ForeignKey("tag_info.id"), primary_key=True)
     table_id = Column(Integer, ForeignKey("table_info.id"), primary_key=True)
 
-    table_tag_info = relationship("TableTagInfo", back_populates="table_infos")
-    table_info = relationship("TableInfo", back_populates="table_tag_infos")
+    tag_info = relationship("TagInfo", back_populates="table_infos")
+    table_info = relationship("TableInfo", back_populates="tag_infos")
 
     def __init__(self, table_tag_info, table_info):
         self.table_tag_info = table_tag_info
         self.table_info = table_info
 
-class ColumnTagInfo(Base):
-    __tablename__ = "column_tag_info"
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    uuid = Column(String, unique=True)
-    name = Column(String)
-
-    column_infos = relationship("ColumnTagAssociation", back_populates="column_tag_info")
-
-    def __init__(self, name, column_infos=None):
-        self.uuid = uuid.uuid4().__str__()
-        self.name = name
-        self.column_infos = column_infos
-
 class ColumnTagAssociation(Base):
     __tablename__ = "column_tag_association"
 
-    tag_id = Column(Integer, ForeignKey("column_tag_info.id"), primary_key=True)
+    tag_id = Column(Integer, ForeignKey("tag_info.id"), primary_key=True)
     column_id = Column(Integer, ForeignKey("column_info.id"), primary_key=True)
 
-    column_tag_info = relationship("ColumnTagInfo", back_populates="column_infos")
-    column_info = relationship("ColumnInfo", back_populates="column_tag_infos")
+    tag_info = relationship("TagInfo", back_populates="column_infos")
+    column_info = relationship("ColumnInfo", back_populates="tag_infos")
 
     def __init__(self, column_tag_info, column_info):
         self.column_tag_info = column_tag_info
