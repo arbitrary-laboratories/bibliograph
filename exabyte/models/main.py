@@ -188,13 +188,18 @@ class TagInfo(Base):
     uuid = Column(String, unique=True)
     name = Column(String)
 
+    is_auto_classfied = Column(Boolean)
+
     table_infos = relationship("TableTagAssociation", back_populates="tag_info")
     column_infos = relationship("ColumnTagAssociation", back_populates="tag_info")
 
-    def __init__(self, name, table_infos=None):
+    def __init__(self, name, is_auto_classfied=False,
+                 table_infos=None, column_infos=None):
         self.uuid = uuid.uuid4().__str__()
         self.name = name
+        self.is_auto_classfied = is_auto_classfied
         self.table_infos = table_infos
+        self.column_infos = column_infos
 
 class TableTagAssociation(Base):
     __tablename__ = "table_tag_association"
