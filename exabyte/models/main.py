@@ -28,8 +28,9 @@ Base = declarative_base(metadata=metadata)
  #   - QueryTableInfo <-> TableInfo
  #
  # Many -> Many
- #   - ColumnInfo <-> Tag (via ColumnTagAssociation)
- #   - TableInfo <-> Tag (via TableTagAssociation)
+ #   - TableInfo <-> Tag (via TableInfoTag)
+ #   - ColumnInfo <-> Tag (via ColumnInfoTag)
+ #
  #######################################################
 
 class Org(Base):
@@ -49,7 +50,7 @@ class Org(Base):
 class TableInfo(Base):
     __tablename__ = "table_info"
 
-    id = Column(Integer, primary_key = True, autoincrement=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     uuid = Column(String, unique=True)
 
     org_id = Column(Integer, ForeignKey("org.id"))
@@ -148,6 +149,7 @@ class ColumnInfo(Base):
             changed_time = self.changed_time
         )
 
+
 class QueryInfo(Base):
     __tablename__ = "query_info"
 
@@ -182,6 +184,7 @@ class QueryTableInfo(Base):
         self.query_info = query_info
         self.pii_flag = pii_flag
 
+
 class Tag(Base):
     __tablename__ = "tag"
 
@@ -189,7 +192,7 @@ class Tag(Base):
     uuid = Column(String, unique=True)
     name = Column(String)
 
-    is_auto_classfied = Column(Boolean)
+    is_auto_classfied = Column(Boolean, default=False)
 
     table_infos = relationship("TableInfoTag", back_populates="tag")
     column_infos = relationship("ColumnInfoTag", back_populates="tag")
@@ -211,6 +214,7 @@ class TableInfoTag(Base):
 
     tag = relationship("Tag", back_populates="table_infos")
     table_info = relationship("TableInfo", back_populates="tags")
+
 
 class ColumnInfoTag(Base):
     __tablename__ = "column_info_tag"
