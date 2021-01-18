@@ -26,6 +26,11 @@ Base = declarative_base(metadata=metadata)
  #
  # One -> One
  #   - QueryTableInfo <-> TableInfo
+ #
+ # Many -> Many
+ #   - TableInfo <-> Tag (via TableInfoTag)
+ #   - ColumnInfo <-> Tag (via ColumnInfoTag)
+ #
  #######################################################
 
 class Org(Base):
@@ -45,7 +50,7 @@ class Org(Base):
 class TableInfo(Base):
     __tablename__ = "table_info"
 
-    id = Column(Integer, primary_key = True, autoincrement=True)
+    id = Column(Integer, primary_key=True, autoincrement=True)
     uuid = Column(String, unique=True)
 
     org_id = Column(Integer, ForeignKey("org.id"))
@@ -53,6 +58,8 @@ class TableInfo(Base):
 
     column_infos = relationship("ColumnInfo", back_populates="table_info")
     query_table_info = relationship("QueryTableInfo", uselist=False, back_populates="table_info")
+
+    tags = relationship("TableInfoTag",  back_populates="table_info")
 
     name = Column(String)
     description = Column(String)
@@ -70,6 +77,7 @@ class TableInfo(Base):
     def __init__(self, org, name, warehouse_full_table_id, description=None,
                  annotation=None, pii_flag=False, warehouse=None, version=0,
                  is_latest=True, column_infos=[], query_table_info=None,
+                 tags=[],
                  ):
         self.uuid = uuid.uuid4().__str__()
         self.org = org
@@ -84,6 +92,7 @@ class TableInfo(Base):
         self.query_table_info = None
         self.version = version
         self.changed_time = datetime.now()
+        self.tags = tags
 
 
 class ColumnInfo(Base):
@@ -98,6 +107,8 @@ class ColumnInfo(Base):
     org_id = Column(String, ForeignKey("org.id"))
     org = relationship("Org")
 
+    tags = relationship("ColumnInfoTag",  back_populates="column_info")
+
     data_type = Column(String)
     name = Column(String)
     description = Column(String)
@@ -111,7 +122,8 @@ class ColumnInfo(Base):
 
     def __init__(self, name, data_type, warehouse_full_column_id,
                  description=None, annotation=None, pii_flag=False, version=0,
-                 is_latest=False, table_info=None):
+                 is_latest=False, table_info=None,
+                 tags=[]):
         self.name = name
         self.uuid = uuid.uuid4().__str__()
         self.table_info = table_info
@@ -124,6 +136,7 @@ class ColumnInfo(Base):
         self.version = version
         self.is_latest = is_latest
         self.changed_time = datetime.now()
+        self.tags = tags
 
     def to_dict(self):
         return dict(
@@ -135,6 +148,7 @@ class ColumnInfo(Base):
             pii_flag = self.pii_flag,
             changed_time = self.changed_time
         )
+
 
 class QueryInfo(Base):
     __tablename__ = "query_info"
@@ -169,6 +183,47 @@ class QueryTableInfo(Base):
         self.table_info = table_info
         self.query_info = query_info
         self.pii_flag = pii_flag
+
+
+class Tag(Base):
+    __tablename__ = "tag"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    uuid = Column(String, unique=True)
+    name = Column(String)
+
+    is_auto_classfied = Column(Boolean, default=False)
+
+    table_infos = relationship("TableInfoTag", back_populates="tag")
+    column_infos = relationship("ColumnInfoTag", back_populates="tag")
+
+    def __init__(self, name, is_auto_classfied=False,
+                 table_infos=[], column_infos=[]):
+        self.uuid = uuid.uuid4().__str__()
+        self.name = name
+        self.is_auto_classfied = is_auto_classfied
+        self.table_infos = table_infos
+        self.column_infos = column_infos
+
+
+class TableInfoTag(Base):
+    __tablename__ = "table_info_tag"
+
+    tag_id = Column(Integer, ForeignKey("tag.id"), primary_key=True)
+    table_info_id = Column(Integer, ForeignKey("table_info.id"), primary_key=True)
+
+    tag = relationship("Tag", back_populates="table_infos")
+    table_info = relationship("TableInfo", back_populates="tags")
+
+
+class ColumnInfoTag(Base):
+    __tablename__ = "column_info_tag"
+
+    tag_id = Column(Integer, ForeignKey("tag.id"), primary_key=True)
+    column_info_id = Column(Integer, ForeignKey("column_info.id"), primary_key=True)
+
+    tag = relationship("Tag", back_populates="column_infos")
+    column_info = relationship("ColumnInfo", back_populates="tags")
 
 
 db = SQLAlchemy(metadata=metadata)
