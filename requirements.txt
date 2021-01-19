@@ -19,6 +19,8 @@ idna==2.10
 itsdangerous==1.1.0
 Jinja2==2.11.2
 MarkupSafe==1.1.1
+pandas==1.1.5
+pandas-gbq==0.14.1
 proto-plus==1.13.0
 protobuf==3.14.0
 pyasn1==0.4.8

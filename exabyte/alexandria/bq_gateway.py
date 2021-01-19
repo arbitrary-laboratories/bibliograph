@@ -26,6 +26,12 @@ class BigQueryGateway(object):
         table = self.client.get_table(table_id)
         return table.description, table.schema, table.full_table_id
 
+    def get_pandas_sample_from_table(self, project, dataset, table_name, sample_size):
+        query = """
+        SELECT * FROM `{0}.{1}.{2}` LIMIT {3}
+        """.format(project, dataset, table_name, sample_size)
+        return pd.read_gbq(query)
+
     def create_schema_object_from_json(self, schema_struct):
         # returns a valid bigquery schema from locally stored json representation
         schema = []
