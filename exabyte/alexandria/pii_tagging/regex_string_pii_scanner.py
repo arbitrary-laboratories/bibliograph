@@ -36,9 +36,9 @@ regexes = {
   "ssn_number"       : ssn
 }
 
-def return_pii_flag(in_string):
-    pii_designations = set()
+def return_table_pii_flag(in_string):
+    pii_designations = []
     for k, v in list(regexes.items()):
         if v.search(in_string):
-            pii_designations.add(k)
+            pii_designations.append(k)
     return pii_designations
