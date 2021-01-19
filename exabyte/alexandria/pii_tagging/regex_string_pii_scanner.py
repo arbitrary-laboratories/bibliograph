@@ -36,7 +36,7 @@ regexes = {
   "ssn_number"       : ssn
 }
 
-def return_table_pii_flag(in_string):
+def column_content_pii_flag(in_string):
     pii_designations = []
     for k, v in list(regexes.items()):
         if v.search(in_string):
