@@ -217,6 +217,8 @@ class TableInfoTag(Base):
     tag_id = Column(Integer, ForeignKey("tag.id"), primary_key=True)
     table_info_id = Column(Integer, ForeignKey("table_info.id"), primary_key=True)
 
+    last_pii_scan = Column(DateTime)
+
     tag = relationship("Tag", back_populates="table_infos")
     table_info = relationship("TableInfo", back_populates="tags")
 
@@ -226,6 +228,8 @@ class ColumnInfoTag(Base):
 
     tag_id = Column(Integer, ForeignKey("tag.id"), primary_key=True)
     column_info_id = Column(Integer, ForeignKey("column_info.id"), primary_key=True)
+
+    last_pii_scan = Column(DateTime)
 
     tag = relationship("Tag", back_populates="column_infos")
     column_info = relationship("ColumnInfo", back_populates="tags")
