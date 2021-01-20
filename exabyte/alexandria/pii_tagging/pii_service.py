@@ -1,6 +1,9 @@
 from collections import Counter
 import pandas as pd
 
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
+
 from exabyte.alexandria.utils import get_bq_gateway
 from exabyte.alexandria.pii_tagging.regex_pii_column_name import column_name_pii_flag
 from exabyte.alexandria.pii_tagging.regex_string_pii_scanner import column_content_pii_flag
@@ -54,3 +57,6 @@ class PIIScanner(object):
             column_content_pii = self.scan_column_contents(v)
             tables[k] = column_name_pii.union(column_content_pii)
         return tables
+
+    # def update_ebdb(self, table_name, table_pii):
+    #     table = self.session.query(TableInfo).filter_by(warehouse_full_table_id=table_name).first()
