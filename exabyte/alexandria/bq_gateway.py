@@ -27,9 +27,9 @@ class BigQueryGateway(object):
         return table.description, table.schema, table.full_table_id
 
     def get_pandas_sample_from_table(self, project, dataset, table_name, sample_size):
-        query = """
-        SELECT * FROM `{0}.{1}.{2}` LIMIT {3}
-        """.format(project, dataset, table_name, sample_size)
+        # sample_size is the count of samples needed
+        query = """SELECT * FROM `{p}.{d}.{t}` WHERE {s}/(SELECT COUNT(*) FROM `{p}.{d}.{t}`)
+        """.format(p=project, d=dataset, t=table_name, s=sample_size)
         return pd.read_gbq(query)
 
     def create_schema_object_from_json(self, schema_struct):

@@ -58,5 +58,14 @@ class PIIScanner(object):
             tables[k] = column_name_pii.union(column_content_pii)
         return tables
 
+    # def get_new_data(self, org_id):
+    #     # returns a list of full table names that were newly added
+    #     continue
+    #
+    # def get_stale_data(self, org_id):
+    #     # returns a list of full table names that were not scanned for pii recently
+    #     self.session.query(Table)
+    #
+    #
     # def update_ebdb(self, table_name, table_pii):
     #     table = self.session.query(TableInfo).filter_by(warehouse_full_table_id=table_name).first()
