@@ -74,20 +74,22 @@ class PIIScanner(object):
         stale_tables = table.TableInfoTag.filter_by(last_pii_scan <= filter_time)
         return [table['warehouse_full_table_id'] for table in stale_tables]
 
-    # def update_ebdb(self, warehouse_full_table_id, pii_set, update_time):
-    #     # given a table_id and a set of columns with pii_tags, edit the ebdb
-    #     update_table = self.session.query(TableInfo).filter_by(warehouse_full_table_id = warehouse_full_table_id)
-    #     if update_table.pii_flag == False:
-    #         update_table.pii_flag = True
-    #     update_table.changed_time = update_time
-    #     update_table.version += 1
-    #     update_table.is_latest = True
-    #     update_table.pii_column_count = len(pii_set)
-    #     for column in update_table.column_infos:
-    #         if column.name in pii_set and column.pii_flag == Fals:
-    #             column.pii_flag == True
-    #             column.tag
-
-
-    def update_ebdb(self, table_name, table_pii):
-        table = self.session.query(TableInfo).filter_by(warehouse_full_table_id=table_name).first()
+    def update_ebdb(self, warehouse_full_table_id, pii_set, update_time):
+        # given a table_id and a set of columns with pii_tags, edit the ebdb
+        update_table = self.session.query(TableInfo).filter_by(warehouse_full_table_id = warehouse_full_table_id)
+        if update_table.pii_flag == False:
+            update_table.pii_flag = True
+        update_table.changed_time = update_time
+        update_table.version += 1
+        update_table.is_latest = True
+        update_table.pii_column_count = len(pii_set)
+        new_columns = []
+        for update_column in update_table.column_infos:
+            if update_column.name in pii_set and update_column.pii_flag == False:
+                update_column.pii_flag == True
+                update_column.changed_time = update_time
+                update_column.version += 1
+                update_column.is_latest = True
+            new_columns.append(update_column)
+        update_table.column_infos = new_columns
+        self.session.commit()
