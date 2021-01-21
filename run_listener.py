@@ -37,7 +37,6 @@ if __name__ == "__main__":
     if args.init:
         run(listener, org_id=args.org_id)
         init_queries = listener.update_queries(datetime(2020, 12, 1), datetime.now())
-    print('doing')
     schedule.every(args.run_interval).minutes.do(lambda: update_job(args.org_id, args.run_interval))
     while True:
         schedule.run_pending()
