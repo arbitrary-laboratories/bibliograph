@@ -82,7 +82,7 @@ class BigQueryGateway(object):
         if job_obj.job_type == 'load':
             return (job_obj.job_type, job_obj.destination)
         elif job_obj.job_type == 'query':
-            return (job_obj.job_type, job_obj.query)
+            return (job_obj.job_type, job_obj.query, job_obj.user_email)
         elif job_obj.job_type == 'copy':
             return (job_obj.job_type, job_obj.destination)
         elif job_obj.job_type == 'extract':

@@ -156,12 +156,15 @@ class QueryInfo(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     uuid = Column(String, unique=True)
 
+    account = Column(String)
+
     query_string = Column(String)
     query_table_infos = relationship("QueryTableInfo", back_populates="query_info")
 
-    def __init__(self, query_string):
+    def __init__(self, query_string, account):
         self.uuid = uuid.uuid4().__str__()
         self.query_string = query_string
+        self.account = account
 
 
 class QueryTableInfo(Base):
