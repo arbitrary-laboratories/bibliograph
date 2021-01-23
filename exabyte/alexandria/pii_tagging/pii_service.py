@@ -25,9 +25,7 @@ class PIIScanner(object):
 
     def get_table_sample(self, full_table_id):
         # return a sample of data for a given table_id
-        # samples = {}
         df = self.gateway.get_pandas_sample_from_table(full_table_id, self.sample_size)
-        # samples[warehouse_full_table_id] = df
         return df
 
     def scan_column_names(self, df):
@@ -78,7 +76,7 @@ class PIIScanner(object):
         return set([table['warehouse_full_table_id'] for table in stale_tables])
 
     def update_ebdb(self, warehouse_full_table_id, pii_set, update_time):
-        # given a table_id and a set of columns with pii_tags, edit the ebdb
+        # given a table_id and a set of columns detected to have pii, edit the ebdb
         update_table = self.session.query(TableInfo).filter_by(warehouse_full_table_id = warehouse_full_table_id).first()
         if update_table.pii_flag == False:
             update_table.pii_flag = True

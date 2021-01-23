@@ -38,6 +38,6 @@ if __name__ == "__main__":
     parser.add_argument('--init', action='store_true', default=False)
     args = parser.parse_args()
 
-    pii_service = PIIScanner(args.db_path, args.org_id)
+    pii_service = PIIScanner(args.db_path, args.org_id, args.init)
     run(pii_service, args.org_id)
     # if init, get all tables
