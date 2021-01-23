@@ -30,4 +30,11 @@ The listener service continuously polls a given data warehouse and returns metad
 ```
 python run_listener.py org_id [--run_interval] [--init]
 ```
-`org_id` is a required argument that represents the org_id of the customer in question. `run_interval` is an optional argument that specifies how often the service should poll the data warehouse (in minutes). `init` is an optional flag. If this flag is raised, the service will initialize the local database with historical queries before polling for tables and columns. If you only want to initialize table/column metadata, you do not have to enable this flag.  
+`org_id` is a required argument that represents the org_id of the customer in question. `run_interval` is an optional argument that specifies how often the service should poll the data warehouse (in minutes). `init` is an optional flag. If this flag is raised, the service will initialize the local database with historical queries before polling for tables and columns. If you only want to initialize table/column metadata, you do not have to enable this flag. 
+
+## Running the PII Service
+The PII service scans metadata and a random sample of rows from tables in the data warehouse for sensitive data. To run this service, run:
+```
+python run_pii_service.py org_id db_path [--init]
+```
+`org_id` is a required argument that represents the org_id of the customer in question. `db_path` is a required argument that represents the path to the local database used by the service to log changes. `init` is an optional flag. If this flag is raised, the service will scan all tables in the data warehouse for pii.
