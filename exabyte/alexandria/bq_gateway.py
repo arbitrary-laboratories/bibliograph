@@ -1,7 +1,9 @@
 from google.cloud import bigquery
-import os
-import pickle as pkl
 import json
+import os
+import pandas as pd
+import pickle as pkl
+
 
 class BigQueryGateway(object):
     def __init__(self):
@@ -26,10 +28,11 @@ class BigQueryGateway(object):
         table = self.client.get_table(table_id)
         return table.description, table.schema, table.full_table_id
 
-    def get_pandas_sample_from_table(self, project, dataset, table_name, sample_size):
+    def get_pandas_sample_from_table(self, table_id, sample_size):
         # sample_size is the count of samples needed
-        query = """SELECT * FROM `{p}.{d}.{t}` WHERE {s}/(SELECT COUNT(*) FROM `{p}.{d}.{t}`)
-        """.format(p=project, d=dataset, t=table_name, s=sample_size)
+        pandas_table_id = str(table_id).replace(":", ".")
+        query = """SELECT * FROM `{t}` WHERE (RAND() < {s}/(SELECT COUNT(*) FROM `{t}`))
+        """.format(t=pandas_table_id, s=sample_size)
         return pd.read_gbq(query)
 
     def create_schema_object_from_json(self, schema_struct):

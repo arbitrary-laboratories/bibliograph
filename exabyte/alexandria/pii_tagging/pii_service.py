@@ -10,6 +10,8 @@ from exabyte.alexandria.listener.listener_service import ListenerService
 from exabyte.alexandria.pii_tagging.regex_pii_column_name import column_name_pii_flag
 from exabyte.alexandria.pii_tagging.regex_string_pii_scanner import column_content_pii_flag
 
+from exabyte.models.main import TableInfo
+
 class PIIScanner(object):
     def __init__(self, db_path, org_id, sample_size=10, refresh_rate=48):
         self.org_id = org_id
@@ -21,11 +23,10 @@ class PIIScanner(object):
         self.listener = ListenerService(self.db_path, self.org_id)
         self.refresh_rate = refresh_rate
 
-    def get_table_sample(self, table_id):
+    def get_table_sample(self, full_table_id):
         # return a sample of data for a given table_id
         # samples = {}
-        warehouse_full_table_id = "{0}:{1}.{2}".format(project, dataset, table)
-        df = self.gateway.get_pandas_sample_from_table(project, dataset, table, self.sample_size)
+        df = self.gateway.get_pandas_sample_from_table(full_table_id, self.sample_size)
         # samples[warehouse_full_table_id] = df
         return df
 
@@ -34,7 +35,7 @@ class PIIScanner(object):
         for column in df.columns:
             pii_flags = column_name_pii_flag(column)
             if len(pii_flags) > 0:
-                pii_column.add(column)
+                pii_columns.add(column)
         return pii_columns
 
     def scan_column_contents(self, df):
@@ -63,19 +64,22 @@ class PIIScanner(object):
         # returns a list of full table names that were newly added
         local_metadata = self.listener.pull_metadata_from_ebdb(self.org_id)
         dw_metadata = self.listener.pull_metadata_from_dw(self.org_id)
-        changes = self.listener.compare_metadata()
+        changes = self.listener.compare_metadata(dw_metadata, local_metadata)
         return set([table['full_id'] for table in changes['add']])
 
     def get_stale_tables(self):
         # returns a list of full table names that were not scanned for pii recently
-        table = self.session.query(TableInfo).filter_by(org_id=self.org_id)
+        tables = self.session.query(TableInfo).filter_by(org_id=self.org_id).all()
         filter_time = datetime.utcnow() - timedelta(hours=self.refresh_rate)
-        stale_tables = table.TableInfoTag.filter_by(last_pii_scan <= filter_time)
+        stale_tables = []
+        for table in tables:
+            stale_table = table.TableInfoTag.filter_by(last_pii_scan <= filter_time)
+            stale_tables.append(stale_table)
         return set([table['warehouse_full_table_id'] for table in stale_tables])
 
     def update_ebdb(self, warehouse_full_table_id, pii_set, update_time):
         # given a table_id and a set of columns with pii_tags, edit the ebdb
-        update_table = self.session.query(TableInfo).filter_by(warehouse_full_table_id = warehouse_full_table_id)
+        update_table = self.session.query(TableInfo).filter_by(warehouse_full_table_id = warehouse_full_table_id).first()
         if update_table.pii_flag == False:
             update_table.pii_flag = True
         update_table.changed_time = update_time
