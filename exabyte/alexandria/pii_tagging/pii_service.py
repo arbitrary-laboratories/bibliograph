@@ -1,6 +1,5 @@
 from collections import Counter
 from datetime import datetime, timedelta
-import pandas as pd
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
