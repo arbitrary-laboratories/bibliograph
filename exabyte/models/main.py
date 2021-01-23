@@ -158,13 +158,15 @@ class QueryInfo(Base):
 
     account = Column(String)
 
+    creation_time = Column(DateTime)
     query_string = Column(String)
     query_table_infos = relationship("QueryTableInfo", back_populates="query_info")
 
-    def __init__(self, query_string, account):
+    def __init__(self, query_string, account, creation_time):
         self.uuid = uuid.uuid4().__str__()
         self.query_string = query_string
         self.account = account
+        self.creation_time = creation_time
 
 
 class QueryTableInfo(Base):

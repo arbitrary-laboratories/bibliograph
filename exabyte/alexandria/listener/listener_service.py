@@ -169,14 +169,21 @@ class ListenerService(object):
 
     def update_queries(self, min_creation_time, max_creation_time):
         jobs = self.gateway.paginated_call_list_jobs(min_creation_time, max_creation_time)
-        queries = [{'query_string':i[1],'account':i[2]} for i in jobs if i[0] == 'query']
+        queries = [
+            # TODO: fix data passing antipattern
+            {'query_string': i[1], 'account': i[2], 'creation_time': i[3]}
+            for i
+            in jobs
+            if i[0] == 'query'
+        ]
         # (query_string, user_email)
         for query in queries:
             mentioned_tables = extract_tables(query['query_string'])
+
             insert_query_info = QueryInfo(
-                                    query_string = query['query_string'],
-                                    account = query['account'],
-                                    )
+                                    query_string=query['query_string'],
+                                    account=query['account'],
+                                    creation_time=query['creation_time'])
             query_table_infos = []
             for table in mentioned_tables:
                 try:
