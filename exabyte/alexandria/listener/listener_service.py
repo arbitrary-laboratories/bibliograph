@@ -22,10 +22,9 @@ from exabyte.models.main import (
 
 
 class ListenerService(object):
-    def __init__(self, db_path, org_id):
-        self.db_path = db_path
+    def __init__(self, db_uri, org_id):
         self.gateway = get_bq_gateway() #datawarehouse_map[warehouse_type]()
-        self.engine = create_engine('sqlite:///{path}'.format(path=self.db_path), echo=True)
+        self.engine = create_engine(db_uri, echo=True)
         self.session = Session(self.engine)
 
     def pull_metadata_from_ebdb(self, org_id):
